@@ -1,0 +1,688 @@
+[
+    {
+        "book title": "Introduction to Geometry"
+    },
+    {
+        "title": "1 What's in a Name?",
+        "children": [
+            {
+                "title": "1.1 Why Names and Symbols?",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s1.pdf"
+            },
+            {
+                "title": "1.2 Points, Lines, and Planes",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s2.pdf"
+            },
+            {
+                "title": "1.3 Round and Round",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s3.pdf"
+            },
+            {
+                "title": "1.4 Construction: Copy a Segment",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s4.pdf"
+            },
+            {
+                "title": "1.5 The Burden of Proof",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s5.pdf"
+            },
+            {
+                "title": "1.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c1s6.pdf"
+            }
+        ]
+    },
+    {
+        "title": "2 Angles",
+        "children": [
+            {
+                "title": "2.1 What is an Angle?",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s1.pdf"
+            },
+            {
+                "title": "2.2 Measuring Angles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s2.pdf"
+            },
+            {
+                "title": "2.3 Straight and Vertical Angles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s3.pdf"
+            },
+            {
+                "title": "2.4 Parallel Lines",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s4.pdf"
+            },
+            {
+                "title": "2.5 Angles in a Triangle",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s5.pdf"
+            },
+            {
+                "title": "2.6 Exterior Angles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s6.pdf"
+            },
+            {
+                "title": "2.7 Parallel Lines Revisited",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s7.pdf"
+            },
+            {
+                "title": "2.8 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2s8.pdf"
+            },
+            {
+                "title": "Chapter 2 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2pr.pdf"
+            },
+            {
+                "title": "Chapter 2 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c2pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "3 Congruent Triangles",
+        "children": [
+            {
+                "title": "3.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s1.pdf"
+            },
+            {
+                "title": "3.2 SSS Congruence",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s2.pdf"
+            },
+            {
+                "title": "3.3 SAS Congruence",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s3.pdf"
+            },
+            {
+                "title": "3.4 ASA and AAS Congruence",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s4.pdf"
+            },
+            {
+                "title": "3.5 SSA Not-Necessarily Congruence",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s5.pdf"
+            },
+            {
+                "title": "3.6 Isosceles and Equilateral Triangles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s6.pdf"
+            },
+            {
+                "title": "3.7 Construction: Equilateral Triangle and Perpendicular Bisector",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s7.pdf"
+            },
+            {
+                "title": "3.8 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3s8.pdf"
+            },
+            {
+                "title": "Chapter 3 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3pr.pdf"
+            },
+            {
+                "title": "Chapter 3 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c3pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "4 Perimeter and Area",
+        "children": [
+            {
+                "title": "4.1 Perimeter",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4s1.pdf"
+            },
+            {
+                "title": "4.2 Area",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4s2.pdf"
+            },
+            {
+                "title": "4.3 Same Base/Same Altitude",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4s3.pdf"
+            },
+            {
+                "title": "4.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4s4.pdf"
+            },
+            {
+                "title": "Chapter 4 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4pr.pdf"
+            },
+            {
+                "title": "Chapter 4 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c4pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "5 Similar Triangles",
+        "children": [
+            {
+                "title": "5.1 What is Similarity?",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s1.pdf"
+            },
+            {
+                "title": "5.2 AA Similarity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s2.pdf"
+            },
+            {
+                "title": "5.3 SAS Similarity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s3.pdf"
+            },
+            {
+                "title": "5.4 SSS Similarity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s4.pdf"
+            },
+            {
+                "title": "5.5 Using Similarity in Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s5.pdf"
+            },
+            {
+                "title": "5.6 Construction: Angles and Parallels",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s6.pdf"
+            },
+            {
+                "title": "5.7 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5s7.pdf"
+            },
+            {
+                "title": "Chapter 5 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5pr.pdf"
+            },
+            {
+                "title": "Chapter 5 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c5pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "6 Right Triangles",
+        "children": [
+            {
+                "title": "6.1 Pythagorean Theorem",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s1.pdf"
+            },
+            {
+                "title": "6.2 Two Special Right Triangles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s2.pdf"
+            },
+            {
+                "title": "6.3 Pythagorean Triples",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s3.pdf"
+            },
+            {
+                "title": "6.4 Congruence and Similarity Revisited",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s4.pdf"
+            },
+            {
+                "title": "6.5★ Heron's Formula",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s5.pdf"
+            },
+            {
+                "title": "6.6 Construction: Perpendicular Lines",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s6.pdf"
+            },
+            {
+                "title": "6.7 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6s7.pdf"
+            },
+            {
+                "title": "Chapter 6 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6pr.pdf"
+            },
+            {
+                "title": "Chapter 6 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c6pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "7 Special Parts of a Triangle",
+        "children": [
+            {
+                "title": "7.1 Bisectors",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s1.pdf"
+            },
+            {
+                "title": "7.2 Perpendicular Bisectors of a Triangle",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s2.pdf"
+            },
+            {
+                "title": "7.3 Angle Bisectors of a Triangle",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s3.pdf"
+            },
+            {
+                "title": "7.4 Medians",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s4.pdf"
+            },
+            {
+                "title": "7.5 Altitudes",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s5.pdf"
+            },
+            {
+                "title": "7.6★ Challenging Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s6.pdf"
+            },
+            {
+                "title": "7.7 Construction: Bisectors",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s7.pdf"
+            },
+            {
+                "title": "7.8 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7s8.pdf"
+            },
+            {
+                "title": "Chapter 7 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7pr.pdf"
+            },
+            {
+                "title": "Chapter 7 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c7pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "8 Quadrilaterals",
+        "children": [
+            {
+                "title": "8.1 Quadrilateral Basics",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s1.pdf"
+            },
+            {
+                "title": "8.2 Trapezoids",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s2.pdf"
+            },
+            {
+                "title": "8.3 Parallelograms",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s3.pdf"
+            },
+            {
+                "title": "8.4 Rhombi",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s4.pdf"
+            },
+            {
+                "title": "8.5 Rectangles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s5.pdf"
+            },
+            {
+                "title": "8.6 Squares",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s6.pdf"
+            },
+            {
+                "title": "8.7 If and Only If",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s7.pdf"
+            },
+            {
+                "title": "8.8★ Quadrilateral Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s8.pdf"
+            },
+            {
+                "title": "8.9 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8s9.pdf"
+            },
+            {
+                "title": "Chapter 8 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8pr.pdf"
+            },
+            {
+                "title": "Chapter 8 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c8pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "9 Polygons",
+        "children": [
+            {
+                "title": "9.1 Introduction to Polygons",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s1.pdf"
+            },
+            {
+                "title": "9.2 Angles in a Polygon",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s2.pdf"
+            },
+            {
+                "title": "9.3 Polygon Area",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s3.pdf"
+            },
+            {
+                "title": "9.4 Polygon Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s4.pdf"
+            },
+            {
+                "title": "9.5 Construction: Regular Polygons",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s5.pdf"
+            },
+            {
+                "title": "9.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9s6.pdf"
+            },
+            {
+                "title": "Chapter 9 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9pr.pdf"
+            },
+            {
+                "title": "Chapter 9 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c9pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "10 Geometric Inequalities",
+        "children": [
+            {
+                "title": "10.1 Sides and Angles of a Triangle",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10s1.pdf"
+            },
+            {
+                "title": "10.2 Pythagoras -- Not Just For Right Triangles?",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10s2.pdf"
+            },
+            {
+                "title": "10.3 The Triangle Inequality",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10s3.pdf"
+            },
+            {
+                "title": "10.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10s4.pdf"
+            },
+            {
+                "title": "Chapter 10 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10pr.pdf"
+            },
+            {
+                "title": "Chapter 10 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c10pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "11 Circles",
+        "children": [
+            {
+                "title": "11.1 Arc Measure, Arc Length, and Circumference",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11s1.pdf"
+            },
+            {
+                "title": "11.2 Area",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11s2.pdf"
+            },
+            {
+                "title": "11.3 Funky Areas",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11s3.pdf"
+            },
+            {
+                "title": "11.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11s4.pdf"
+            },
+            {
+                "title": "Chapter 11 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11pr.pdf"
+            },
+            {
+                "title": "Chapter 11 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c11pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "12 Circles and Angles",
+        "children": [
+            {
+                "title": "12.1 Inscribed Angles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s1.pdf"
+            },
+            {
+                "title": "12.2 Angles Inside and Outside Circles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s2.pdf"
+            },
+            {
+                "title": "12.3 Tangents",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s3.pdf"
+            },
+            {
+                "title": "12.4 Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s4.pdf"
+            },
+            {
+                "title": "12.5 Construction: Tangents",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s5.pdf"
+            },
+            {
+                "title": "12.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12s6.pdf"
+            },
+            {
+                "title": "Chapter 12 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12pr.pdf"
+            },
+            {
+                "title": "Chapter 12 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c12pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "13 Power of a Point",
+        "children": [
+            {
+                "title": "13.1 What is Power of a Point?",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c13s1.pdf"
+            },
+            {
+                "title": "13.2 Power of a Point Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c13s2.pdf"
+            },
+            {
+                "title": "13.3 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c13s3.pdf"
+            },
+            {
+                "title": "Chapter 13 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c13pr.pdf"
+            },
+            {
+                "title": "Chapter 13 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c13pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "14 Three-Dimensional Geometry",
+        "children": [
+            {
+                "title": "14.1 Planes",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14s1.pdf"
+            },
+            {
+                "title": "14.2 Prisms",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14s2.pdf"
+            },
+            {
+                "title": "14.3 Pyramids",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14s3.pdf"
+            },
+            {
+                "title": "14.4 Regular Polyhedra",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14s4.pdf"
+            },
+            {
+                "title": "14.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14s5.pdf"
+            },
+            {
+                "title": "Chapter 14 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14pr.pdf"
+            },
+            {
+                "title": "Chapter 14 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c14pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "15 Curved Surfaces",
+        "children": [
+            {
+                "title": "15.1 Cylinders",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15s1.pdf"
+            },
+            {
+                "title": "15.2 Cones",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15s2.pdf"
+            },
+            {
+                "title": "15.3 Spheres",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15s3.pdf"
+            },
+            {
+                "title": "15.4 Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15s4.pdf"
+            },
+            {
+                "title": "15.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15s5.pdf"
+            },
+            {
+                "title": "Chapter 15 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15pr.pdf"
+            },
+            {
+                "title": "Chapter 15 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c15pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "16 The More Things Change...",
+        "children": [
+            {
+                "title": "16.1 Translations",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s1.pdf"
+            },
+            {
+                "title": "16.2 Rotations",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s2.pdf"
+            },
+            {
+                "title": "16.3 Reflections",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s3.pdf"
+            },
+            {
+                "title": "16.4 Dilation",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s4.pdf"
+            },
+            {
+                "title": "16.5 Changing the Question",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s5.pdf"
+            },
+            {
+                "title": "16.6 Construction: Transformations",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s6.pdf"
+            },
+            {
+                "title": "16.7 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16s7.pdf"
+            },
+            {
+                "title": "Chapter 16 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16pr.pdf"
+            },
+            {
+                "title": "Chapter 16 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c16pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "17 Analytic Geometry",
+        "children": [
+            {
+                "title": "17.1 Lines",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s1.pdf"
+            },
+            {
+                "title": "17.2 Circles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s2.pdf"
+            },
+            {
+                "title": "17.3 Basic Analytic Geometry Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s3.pdf"
+            },
+            {
+                "title": "17.4 Proofs with Analytic Geometry",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s4.pdf"
+            },
+            {
+                "title": "17.5 Distance Between a Point and a Line",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s5.pdf"
+            },
+            {
+                "title": "17.6 Advanced Analytic Geometry Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s6.pdf"
+            },
+            {
+                "title": "17.7 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17s7.pdf"
+            },
+            {
+                "title": "Chapter 17 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17pr.pdf"
+            },
+            {
+                "title": "Chapter 17 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c17pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "18 Introduction to Trigonometry",
+        "children": [
+            {
+                "title": "18.1 Trigonometry and Right Triangles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18s1.pdf"
+            },
+            {
+                "title": "18.2 Not Just For Right Triangles",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18s2.pdf"
+            },
+            {
+                "title": "18.3 Law of Sines and Law of Cosines",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18s3.pdf"
+            },
+            {
+                "title": "18.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18s4.pdf"
+            },
+            {
+                "title": "Chapter 18 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18pr.pdf"
+            },
+            {
+                "title": "Chapter 18 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c18pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "19 Problem Solving Strategies in Geometry",
+        "children": [
+            {
+                "title": "19.1 The Extra Line",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c19s1.pdf"
+            },
+            {
+                "title": "19.2 Assigning Variables",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c19s2.pdf"
+            },
+            {
+                "title": "19.3 Proofs",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c19s3.pdf"
+            },
+            {
+                "title": "19.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c19s4.pdf"
+            },
+            {
+                "title": "Chapter 19 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-geometry-ebook_c19pc.pdf"
+            }
+        ]
+    }
+]

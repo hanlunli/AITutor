@@ -1,0 +1,22 @@
+# Ignore virtual environment (in any subfolder)
+**/venv/
+
+# Ignore environment variables (API Keys)
+**/.env
+
+# Ignore Python cache
+**/__pycache__/
+**/*.pyc
+
+# --- Frontend specific ---
+frontend/node_modules/
+frontend/dist/
+frontend/aitutor.db
+
+# --- Backend specific ---
+backend/aitutor.db
+
+# --- Other Generated Files ---
+output_pdfs/
+_bak/
+auth_state.json
