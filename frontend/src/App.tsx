@@ -371,6 +371,14 @@ const App = () => {
   const [userRole, setUserRole] = useState<'parent' | 'student' | null>(() => (localStorage.getItem('userRole') as 'parent' | 'student') || null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!localStorage.getItem('userEmail') && !!localStorage.getItem('userRole'));
   
+  // Auth state
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'verify'>('login');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authParentEmail, setAuthParentEmail] = useState('');
+  const [authCode, setAuthCode] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [generatedCourses, setGeneratedCourses] = useState<any[]>([]);
@@ -427,8 +435,10 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (isLoggedIn) {
+      fetchTasks();
+    }
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (!selectedCourseId || !availableCourses.length) {
@@ -488,7 +498,7 @@ const App = () => {
       const res = await fetch(`${API_BASE}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: newStatus })
+        body: JSON.stringify({ [field]: newStatus, student_email: userEmail })
       });
       if (res.ok) {
         setTasks(tasks.map(t => t.id === taskId ? { ...t, [field]: newStatus } : t));
@@ -600,11 +610,21 @@ const App = () => {
     setEvaluatingClass(prev => ({ ...prev, [idx]: false }));
 
     if (activeClassTask) {
-      const isAllDoneNow = classQuestions.every((_, i) => newEvals[i]?.correct || newAttempts[i] >= 2);
+      // isAllDoneNow should check if EVERY question in classQuestions has EITHER correct eval OR >= 2 attempts
+      // We need to use newEvals and newAttempts which contain the state AFTER this submission
+      const isAllDoneNow = classQuestions.every((_, i) => {
+        // If it's the current question, use the new state
+        if (i === idx) {
+           return newEvals[i]?.correct || newAttempts[i] >= 2;
+        }
+        // Otherwise, use the new state (which copied the old state for other questions)
+        return newEvals[i]?.correct || newAttempts[i] >= 2;
+      });
+      
       const classData = { answers: classAnswers, evaluations: newEvals, images: classImages, attempts: newAttempts };
       
       try {
-        const payload: any = { class_data: classData };
+        const payload: any = { class_data: classData, student_email: userEmail };
         if (isAllDoneNow) payload.class_status = 'completed';
         
         const res = await fetch(`${API_BASE}/tasks/${activeClassTask.id}`, {
@@ -717,11 +737,16 @@ const App = () => {
     setEvaluatingHomework(prev => ({ ...prev, [idx]: false }));
 
     if (activeHomeworkTask) {
-      const isAllDoneNow = homeworkQuestions.every((_, i) => newEvals[i]?.correct || newAttempts[i] >= 2);
+      const isAllDoneNow = homeworkQuestions.every((_, i) => {
+        if (i === idx) {
+           return newEvals[i]?.correct || newAttempts[i] >= 2;
+        }
+        return newEvals[i]?.correct || newAttempts[i] >= 2;
+      });
       const classData = { answers: homeworkAnswers, evaluations: newEvals, images: homeworkImages, attempts: newAttempts };
       
       try {
-        const payload: any = { homework_data: classData };
+        const payload: any = { homework_data: classData, student_email: userEmail };
         if (isAllDoneNow) payload.homework_status = 'completed';
         
         const res = await fetch(`${API_BASE}/tasks/${activeHomeworkTask.id}`, {
@@ -750,55 +775,190 @@ const App = () => {
   const progress = totalDays === 0 ? 0 : Math.round((completedDays / totalDays) * 100);
 
   if (!isLoggedIn) {
+    const handleAuthSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setAuthError('');
+      setAuthLoading(true);
+
+      try {
+        if (authMode === 'register') {
+          if (!userRole) {
+            setAuthError('Please select a role (Parent or Student)');
+            setAuthLoading(false);
+            return;
+          }
+          if (userRole === 'student' && !authParentEmail.trim()) {
+            setAuthError('Students must provide a parent email address');
+            setAuthLoading(false);
+            return;
+          }
+          const res = await fetch(`${API_BASE}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              email: userEmail.trim(), 
+              password: authPassword, 
+              role: userRole,
+              parent_email: userRole === 'student' ? authParentEmail.trim() : null
+            })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setAuthMode('verify');
+          } else {
+            setAuthError(data.detail || 'Registration failed');
+          }
+        } else if (authMode === 'verify') {
+          const res = await fetch(`${API_BASE}/auth/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail.trim(), code: authCode })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            alert('Account activated successfully! Please log in.');
+            setAuthMode('login');
+            setAuthPassword('');
+            setAuthCode('');
+          } else {
+            setAuthError(data.detail || 'Verification failed');
+          }
+        } else if (authMode === 'login') {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail.trim(), password: authPassword })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            localStorage.setItem('userEmail', data.email);
+            localStorage.setItem('userRole', data.role);
+            setUserRole(data.role as 'parent' | 'student');
+            setIsLoggedIn(true);
+          } else {
+            setAuthError(data.detail || 'Login failed');
+          }
+        }
+      } catch (err) {
+        setAuthError('Network error. Please try again.');
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to AITutor</h2>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              {authMode === 'login' ? 'Sign in to AITutor' : authMode === 'register' ? 'Create an Account' : 'Verify Email'}
+            </h2>
           </div>
-          <form className="mt-8 space-y-6" onSubmit={(e) => { 
-            e.preventDefault(); 
-            if (userEmail.trim() && userRole) {
-              localStorage.setItem('userEmail', userEmail.trim());
-              localStorage.setItem('userRole', userRole);
-              setIsLoggedIn(true); 
-            } else if (!userRole) {
-              alert('Please select a role (Parent or Student)');
-            }
-          }}>
-            <div className="flex justify-center gap-8 mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="role" value="student" checked={userRole === 'student'} onChange={() => setUserRole('student')} className="w-4 h-4 text-blue-600" />
-                <span className="text-gray-900 font-medium">Student</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="role" value="parent" checked={userRole === 'parent'} onChange={() => setUserRole('parent')} className="w-4 h-4 text-blue-600" />
-                <span className="text-gray-900 font-medium">Parent</span>
-              </label>
-            </div>
-            <div className="rounded-md shadow-sm -space-y-px">
-              <div>
-                <label htmlFor="email-address" className="sr-only">Email address</label>
-                <input
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                  value={userEmail}
-                  onChange={(e) => setUserEmail(e.target.value)}
-                />
+          <form className="mt-8 space-y-6" onSubmit={handleAuthSubmit}>
+            {authError && (
+              <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm border border-red-200">
+                {authError}
               </div>
+            )}
+            
+            {authMode === 'register' && (
+              <div className="flex justify-center gap-8 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="role" value="student" checked={userRole === 'student'} onChange={() => setUserRole('student')} className="w-4 h-4 text-blue-600" />
+                  <span className="text-gray-900 font-medium">Student</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="role" value="parent" checked={userRole === 'parent'} onChange={() => setUserRole('parent')} className="w-4 h-4 text-blue-600" />
+                  <span className="text-gray-900 font-medium">Parent</span>
+                </label>
+              </div>
+            )}
+
+            <div className="rounded-md shadow-sm space-y-3">
+              {(authMode === 'login' || authMode === 'register') && (
+                <>
+                  <div>
+                    <label htmlFor="email-address" className="sr-only">Email address</label>
+                    <input
+                      id="email-address"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      placeholder="Email address"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="password" className="sr-only">Password</label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      placeholder="Password"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                    />
+                  </div>
+                  {authMode === 'register' && userRole === 'student' && (
+                    <div>
+                      <label htmlFor="parent-email" className="sr-only">Parent Email</label>
+                      <input
+                        id="parent-email"
+                        name="parent_email"
+                        type="email"
+                        required
+                        className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="Parent's Email Address"
+                        value={authParentEmail}
+                        onChange={(e) => setAuthParentEmail(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {authMode === 'verify' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3 text-center">We sent a 6-digit code to <strong>{userEmail}</strong></p>
+                  <label htmlFor="code" className="sr-only">Verification Code</label>
+                  <input
+                    id="code"
+                    name="code"
+                    type="text"
+                    required
+                    className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm text-center tracking-widest text-lg"
+                    placeholder="000000"
+                    value={authCode}
+                    onChange={(e) => setAuthCode(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
+
             <div>
               <button
                 type="submit"
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={authLoading}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                Sign in
+                {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : authMode === 'login' ? 'Sign in' : authMode === 'register' ? 'Register' : 'Verify & Activate'}
               </button>
+            </div>
+            
+            <div className="text-center text-sm">
+              {authMode === 'login' ? (
+                <p className="text-gray-600">Don't have an account? <button type="button" onClick={() => {setAuthMode('register'); setAuthError('');}} className="text-blue-600 hover:underline">Register here</button></p>
+              ) : authMode === 'register' ? (
+                <p className="text-gray-600">Already have an account? <button type="button" onClick={() => {setAuthMode('login'); setAuthError('');}} className="text-blue-600 hover:underline">Sign in</button></p>
+              ) : (
+                <p className="text-gray-600"><button type="button" onClick={() => {setAuthMode('register'); setAuthError('');}} className="text-blue-600 hover:underline">Back to registration</button></p>
+              )}
             </div>
           </form>
         </div>
@@ -1190,7 +1350,7 @@ const App = () => {
                                   value={opt}
                                   checked={classAnswers[idx] === opt}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                  disabled={isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
                                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
                                 />
                                 <span className="text-gray-700"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
@@ -1202,13 +1362,13 @@ const App = () => {
                             <textarea
                               value={classAnswers[idx] || ''}
                               onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                              disabled={isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                              disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
                               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               rows={4}
-                              placeholder="Type your answer here..."
+                              placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
-                              {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                              {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                               <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
                                 <ImageIcon className="w-4 h-4 mr-1" />
                                 Upload Work (Image)
@@ -1233,7 +1393,7 @@ const App = () => {
                               {classImages[idx] && (
                                 <div className="relative mt-2">
                                   <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
-                                  {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                                   <button 
                                     onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
@@ -1268,18 +1428,18 @@ const App = () => {
                           </div>
                         )}
 
-                        {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
-                          <div className="mt-4 flex justify-end">
-                            <button 
-                              onClick={() => submitSingleClassQuestion(idx)}
-                              disabled={evaluatingClass[idx] || (!(classAnswers[idx] || '').trim() && !classImages[idx])}
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {evaluatingClass[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                              {evaluatingClass[idx] ? 'Evaluating...' : 'Submit'}
-                            </button>
-                          </div>
-                        )}
+                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                              <div className="mt-4 flex justify-end">
+                                <button 
+                                  onClick={() => submitSingleClassQuestion(idx)}
+                                  disabled={evaluatingClass[idx] || (!(classAnswers[idx] || '').trim() && !classImages[idx])}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {evaluatingClass[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                                  {evaluatingClass[idx] ? 'Evaluating...' : 'Submit'}
+                                </button>
+                              </div>
+                            )}
                         
                         <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
                       </div>

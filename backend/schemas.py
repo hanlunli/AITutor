@@ -1,6 +1,20 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    role: str
+    parent_email: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class VerifyCodeRequest(BaseModel):
+    email: str
+    code: str
+
 class DailyTaskBase(BaseModel):
     chapter: Optional[str] = None
     day_number: int
@@ -16,6 +30,7 @@ class DailyTaskUpdate(BaseModel):
     homework_status: Optional[str] = None
     class_data: Optional[dict] = None
     homework_data: Optional[dict] = None
+    student_email: Optional[str] = None
 
 class DailyTask(DailyTaskBase):
     id: int

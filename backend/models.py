@@ -1,6 +1,17 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, JSON, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String) # 'parent' or 'student'
+    is_active = Column(Boolean, default=False)
+    activation_code = Column(String, nullable=True)
+    parent_email = Column(String, nullable=True) # Only used if role is 'student'
 
 class Course(Base):
     __tablename__ = "courses"

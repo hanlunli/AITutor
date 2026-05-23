@@ -6,9 +6,12 @@ from typing import List
 import os
 import urllib.parse
 import json
+import hashlib
+import random
 
 import models, schemas
 import llm
+import email_service
 from database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -22,6 +25,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.post("/api/auth/register")
+def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        if db_user.is_active:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        # If not active, we can resend code
+    
+    code = str(random.randint(100000, 999999))
+    
+    if not db_user:
+        db_user = models.User(
+            email=user.email,
+            hashed_password=hash_password(user.password),
+            role=user.role,
+            is_active=False,
+            activation_code=code,
+            parent_email=user.parent_email if user.role == 'student' else None
+        )
+        db.add(db_user)
+    else:
+        db_user.hashed_password = hash_password(user.password)
+        db_user.role = user.role
+        db_user.activation_code = code
+        db_user.parent_email = user.parent_email if user.role == 'student' else None
+        
+    db.commit()
+    
+    # Send email
+    email_service.send_activation_email(user.email, code)
+    return {"message": "Activation code sent to email"}
+
+@app.post("/api/auth/verify")
+def verify_code(req: schemas.VerifyCodeRequest, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if db_user.activation_code != req.code:
+        raise HTTPException(status_code=400, detail="Invalid activation code")
+        
+    db_user.is_active = True
+    db_user.activation_code = None
+    db.commit()
+    return {"message": "Account activated successfully"}
+
+@app.post("/api/auth/login")
+def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if not db_user:
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+        
+    if db_user.hashed_password != hash_password(user.password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+        
+    if not db_user.is_active:
+        raise HTTPException(status_code=400, detail="Account not activated. Please register again to get a new code.")
+        
+    return {"email": db_user.email, "role": db_user.role}
 
 @app.post("/api/parse", response_model=schemas.Course)
 async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_db)):
@@ -268,21 +334,71 @@ def get_tasks(course_id: int = None, db: Session = Depends(get_db)):
         query = query.filter(models.DailyTask.course_id == course_id)
     return query.order_by(models.DailyTask.day_number).all()
 
+def _calculate_stats(data: dict):
+    if not data:
+        return {}
+    
+    evals = data.get('evaluations', {})
+    attempts = data.get('attempts', {})
+    
+    total = len(evals) if evals else len(attempts)
+    correct = sum(1 for v in evals.values() if v.get('correct'))
+    
+    return {
+        'total': total,
+        'correct': correct,
+        'attempts': attempts
+    }
+
 @app.patch("/api/tasks/{task_id}", response_model=schemas.DailyTask)
 def update_task_status(task_id: int, task_update: schemas.DailyTaskUpdate, db: Session = Depends(get_db)):
     db_task = db.query(models.DailyTask).filter(models.DailyTask.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
     
+    old_class_status = db_task.class_status
+    old_homework_status = db_task.homework_status
+    
     if task_update.class_status is not None:
         db_task.class_status = task_update.class_status
+        
     if task_update.homework_status is not None:
         db_task.homework_status = task_update.homework_status
+        
     if task_update.class_data is not None:
         db_task.class_data = task_update.class_data
     if task_update.homework_data is not None:
         db_task.homework_data = task_update.homework_data
-        
+
+    def is_completed(c_status, h_status):
+        c_done = c_status in ['completed', 'na']
+        h_done = h_status in ['completed', 'na']
+        return c_done and h_done
+
+    was_completed = is_completed(old_class_status, old_homework_status)
+    is_now_completed = is_completed(db_task.class_status, db_task.homework_status)
+
+    if not was_completed and is_now_completed:
+        try:
+            class_stats = _calculate_stats(db_task.class_data) if db_task.class_status == 'completed' else None
+            homework_stats = _calculate_stats(db_task.homework_data) if db_task.homework_status == 'completed' else None
+            
+            parent_email = None
+            if task_update.student_email:
+                student_user = db.query(models.User).filter(models.User.email == task_update.student_email).first()
+                if student_user and student_user.parent_email:
+                    parent_email = student_user.parent_email
+                
+            email_service.send_combined_task_completion_report(
+                student_email=task_update.student_email or "Student",
+                parent_email=parent_email,
+                task_topic=db_task.topic,
+                class_stats=class_stats,
+                homework_stats=homework_stats
+            )
+        except Exception as e:
+            print(f"Failed to send completion email: {e}")
+            
     db.commit()
     db.refresh(db_task)
     return db_task

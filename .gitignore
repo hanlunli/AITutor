@@ -17,6 +17,8 @@ frontend/aitutor.db
 backend/aitutor.db
 
 # --- Other Generated Files ---
-output_pdfs/
+output_pdfs_*/
 _bak/
 auth_state.json
+generate_json*.py
+toc_mapping*.json
