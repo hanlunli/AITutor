@@ -368,6 +368,8 @@ const App = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [courseTitle, setCourseTitle] = useState('AITutor Timeline');
   const [loading, setLoading] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
 
   // Modals state
   const [activeClassTask, setActiveClassTask] = useState<Task | null>(null);
@@ -395,18 +397,25 @@ const App = () => {
 
   const fetchTasks = async () => {
     try {
-      const [tasksRes, coursesRes] = await Promise.all([
+      const [tasksRes, coursesRes, availableCoursesRes] = await Promise.all([
         fetch(`${API_BASE}/tasks`),
-        fetch(`${API_BASE}/courses`)
+        fetch(`${API_BASE}/courses`),
+        fetch(`${API_BASE}/available_courses`)
       ]);
       const tasksData = await tasksRes.json();
       const coursesData = await coursesRes.json();
+      const availableCoursesData = await availableCoursesRes.json();
       
       setTasks(tasksData);
       if (coursesData && coursesData.length > 0) {
         setCourseTitle(coursesData[0].title);
       } else {
         setCourseTitle('AITutor Timeline');
+      }
+      
+      setAvailableCourses(availableCoursesData);
+      if (availableCoursesData && availableCoursesData.length > 0 && !selectedCourseId) {
+        setSelectedCourseId(availableCoursesData[0].id);
       }
     } catch (e) {
       console.error(e);
@@ -418,6 +427,14 @@ const App = () => {
   }, []);
 
   const handleParse = async () => {
+    if (!selectedCourseId) {
+      alert("Please select a course first.");
+      return;
+    }
+    
+    const selectedCourse = availableCourses.find(c => c.id === selectedCourseId);
+    if (!selectedCourse) return;
+
     setLoading(true);
     try {
       // Clear timeline before generating a new one
@@ -428,8 +445,8 @@ const App = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          course_file_path: "..\\toc_mapping.json",
-          pdf_directory_path: ""
+          course_file_path: selectedCourse.file_path,
+          pdf_directory_path: selectedCourse.pdf_dir
         })
       });
       if (res.ok) {
@@ -719,21 +736,32 @@ const App = () => {
         
         {/* Header & Progress */}
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 relative">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h1 className="text-2xl font-bold text-gray-900">{courseTitle}</h1>
-            <button 
-              onClick={handleParse}
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-              {loading ? 'Generating...' : 'Generate Timeline'}
-            </button>
+            <div className="flex items-center gap-2">
+              <select 
+                value={selectedCourseId} 
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {availableCourses.map(course => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+              <button 
+                onClick={handleParse}
+                disabled={loading || !selectedCourseId}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                {loading ? 'Generating...' : 'Generate Timeline'}
+              </button>
+            </div>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-medium text-gray-600">
               <span>Overall Progress</span>
-              <span>{completedDays} / {totalDays} Days ({progress}%)</span>
+              <span>{completedDays} / {totalDays} Tasks ({progress}%)</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
               <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>

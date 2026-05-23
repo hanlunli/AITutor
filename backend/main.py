@@ -49,6 +49,17 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
             mapping_data = json.load(f)
             
         course_title = "My Course"
+        
+        # Try to infer title from filename if available
+        filename = os.path.basename(request.course_file_path)
+        course_id = filename.replace("toc_mapping_", "").replace(".json", "")
+        if course_id == "intro-counting":
+            course_title = "Introduction to Counting and Probability"
+        elif course_id == "intro-geometry":
+            course_title = "Introduction to Geometry"
+        elif course_id != "toc_mapping":
+            course_title = course_id.replace("-", " ").title()
+
         if len(mapping_data) > 0 and "book title" in mapping_data[0]:
             course_title = mapping_data[0]["book title"]
             mapping_data = mapping_data[1:]
@@ -196,6 +207,46 @@ def clear_all_tasks(db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to AITutor Timeline API"}
+
+@app.get("/api/available_courses")
+def get_available_courses():
+    import glob
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mapping_files = glob.glob(os.path.join(root_dir, "toc_mapping*.json"))
+    courses = []
+    for file_path in mapping_files:
+        filename = os.path.basename(file_path)
+        # Extract course name from filename, e.g., toc_mapping_intro-counting.json -> intro-counting
+        if filename == "toc_mapping.json":
+            course_id = "default"
+            pdf_dir = "output_pdfs" # or whatever default is
+        else:
+            course_id = filename.replace("toc_mapping_", "").replace(".json", "")
+            pdf_dir = f"output_pdfs_{course_id}-ebook"
+        
+        # Read the title from the json if possible
+        if course_id == "intro-counting":
+            title = "Introduction to Counting and Probability"
+        elif course_id == "intro-geometry":
+            title = "Introduction to Geometry"
+        else:
+            title = course_id.replace("-", " ").title()
+            
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if len(data) > 0 and "book title" in data[0]:
+                    title = data[0]["book title"]
+        except:
+            pass
+            
+        courses.append({
+            "id": course_id,
+            "title": title,
+            "file_path": f"..\\{filename}",
+            "pdf_dir": f"..\\{pdf_dir}"
+        })
+    return courses
 
 @app.get("/api/courses", response_model=List[schemas.Course])
 def get_courses(db: Session = Depends(get_db)):
