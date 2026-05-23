@@ -118,6 +118,11 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
             pdf_name_to_path[name] = p
     
     # 2. Create Course
+    existing_course = db.query(models.Course).filter(models.Course.title == course_title).first()
+    if existing_course:
+        db.delete(existing_course)
+        db.commit()
+
     db_course = models.Course(title=course_title, description="Generated from JSON mapping")
     db.add(db_course)
     db.commit()
@@ -187,15 +192,19 @@ def get_file(filepath: str):
     # URL decode the filepath just in case
     filepath = urllib.parse.unquote(filepath)
     
-    # Security check to prevent directory traversal
-    if ".." in filepath:
-        raise HTTPException(status_code=400, detail="Invalid filepath")
+    # Resolve the absolute path
+    abs_filepath = os.path.abspath(filepath)
+    
+    # Security check: ensure it doesn't escape the project root
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not abs_filepath.startswith(project_root):
+        raise HTTPException(status_code=400, detail="Invalid filepath: Access denied")
         
-    if not os.path.exists(filepath):
-        print(f"File not found on disk: {filepath}")
+    if not os.path.exists(abs_filepath):
+        print(f"File not found on disk: {abs_filepath}")
         raise HTTPException(status_code=404, detail="File not found")
         
-    return FileResponse(filepath, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    return FileResponse(abs_filepath, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.delete("/api/tasks")
 def clear_all_tasks(db: Session = Depends(get_db)):

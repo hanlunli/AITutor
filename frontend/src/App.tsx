@@ -263,11 +263,13 @@ interface ChatMessage {
   content: string;
 }
 
-const ProblemChat = ({ question, pdfPath }: { question: Question, pdfPath?: string }) => {
+const ProblemChat = ({ question, pdfPath, isParent }: { question: Question, pdfPath?: string, isParent?: boolean }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  if (isParent) return null;
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -365,7 +367,13 @@ ${question.hints ? `Hints: ${question.hints.map(h => h.text).join(' ')}` : ''}
 };
 
 const App = () => {
+  const [userEmail, setUserEmail] = useState<string>(() => localStorage.getItem('userEmail') || '');
+  const [userRole, setUserRole] = useState<'parent' | 'student' | null>(() => (localStorage.getItem('userRole') as 'parent' | 'student') || null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => !!localStorage.getItem('userEmail') && !!localStorage.getItem('userRole'));
+  
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [generatedCourses, setGeneratedCourses] = useState<any[]>([]);
   const [courseTitle, setCourseTitle] = useState('AITutor Timeline');
   const [loading, setLoading] = useState(false);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
@@ -406,14 +414,10 @@ const App = () => {
       const coursesData = await coursesRes.json();
       const availableCoursesData = await availableCoursesRes.json();
       
-      setTasks(tasksData);
-      if (coursesData && coursesData.length > 0) {
-        setCourseTitle(coursesData[0].title);
-      } else {
-        setCourseTitle('AITutor Timeline');
-      }
-      
+      setAllTasks(tasksData);
+      setGeneratedCourses(coursesData);
       setAvailableCourses(availableCoursesData);
+      
       if (availableCoursesData && availableCoursesData.length > 0 && !selectedCourseId) {
         setSelectedCourseId(availableCoursesData[0].id);
       }
@@ -426,6 +430,25 @@ const App = () => {
     fetchTasks();
   }, []);
 
+  useEffect(() => {
+    if (!selectedCourseId || !availableCourses.length) {
+      setTasks([]);
+      setCourseTitle('AITutor Timeline');
+      return;
+    }
+    
+    const selectedAvailable = availableCourses.find(c => c.id === selectedCourseId);
+    if (selectedAvailable) {
+      setCourseTitle(selectedAvailable.title);
+      const generated = generatedCourses.find(c => c.title === selectedAvailable.title);
+      if (generated) {
+        setTasks(allTasks.filter(t => t.course_id === generated.id));
+      } else {
+        setTasks([]);
+      }
+    }
+  }, [selectedCourseId, allTasks, generatedCourses, availableCourses]);
+
   const handleParse = async () => {
     if (!selectedCourseId) {
       alert("Please select a course first.");
@@ -437,10 +460,6 @@ const App = () => {
 
     setLoading(true);
     try {
-      // Clear timeline before generating a new one
-      await fetch(`${API_BASE}/tasks`, { method: 'DELETE' });
-      setTasks([]);
-
       const res = await fetch(`${API_BASE}/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -730,6 +749,65 @@ const App = () => {
   const totalDays = validTasks.length;
   const progress = totalDays === 0 ? 0 : Math.round((completedDays / totalDays) * 100);
 
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to AITutor</h2>
+          </div>
+          <form className="mt-8 space-y-6" onSubmit={(e) => { 
+            e.preventDefault(); 
+            if (userEmail.trim() && userRole) {
+              localStorage.setItem('userEmail', userEmail.trim());
+              localStorage.setItem('userRole', userRole);
+              setIsLoggedIn(true); 
+            } else if (!userRole) {
+              alert('Please select a role (Parent or Student)');
+            }
+          }}>
+            <div className="flex justify-center gap-8 mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="role" value="student" checked={userRole === 'student'} onChange={() => setUserRole('student')} className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-900 font-medium">Student</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="role" value="parent" checked={userRole === 'parent'} onChange={() => setUserRole('parent')} className="w-4 h-4 text-blue-600" />
+                <span className="text-gray-900 font-medium">Parent</span>
+              </label>
+            </div>
+            <div className="rounded-md shadow-sm -space-y-px">
+              <div>
+                <label htmlFor="email-address" className="sr-only">Email address</label>
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Email address"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Sign in
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  const isParent = userRole === 'parent';
+
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-2 sm:px-4 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-4 sm:space-y-8">
@@ -748,13 +826,27 @@ const App = () => {
                   <option key={course.id} value={course.id}>{course.title}</option>
                 ))}
               </select>
+              {isParent && (
+                <button 
+                  onClick={handleParse}
+                  disabled={loading || !selectedCourseId}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  {loading ? 'Generating...' : 'Generate Timeline'}
+                </button>
+              )}
               <button 
-                onClick={handleParse}
-                disabled={loading || !selectedCourseId}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  localStorage.removeItem('userEmail');
+                  localStorage.removeItem('userRole');
+                  setIsLoggedIn(false);
+                  setUserEmail('');
+                  setUserRole(null);
+                }}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-                {loading ? 'Generating...' : 'Generate Timeline'}
+                Sign out
               </button>
             </div>
           </div>
@@ -945,7 +1037,7 @@ const App = () => {
                                       value={opt}
                                       checked={classAnswers[idx] === opt}
                                       onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                      disabled={isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                      disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
                                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
                                     />
                                     <span className="text-gray-700"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
@@ -957,13 +1049,13 @@ const App = () => {
                                 <textarea
                                   value={classAnswers[idx] || ''}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                  disabled={isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
                                   className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                                   rows={4}
-                                  placeholder="Type your answer here..."
+                                  placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                                 />
                                 <div className="flex items-center gap-4">
-                                  {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                                   <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
                                     <ImageIcon className="w-4 h-4 mr-1" />
                                     Upload Work (Image)
@@ -988,7 +1080,7 @@ const App = () => {
                                   {classImages[idx] && (
                                     <div className="relative mt-2">
                                       <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
-                                      {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                      {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                                       <button 
                                         onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
@@ -1023,7 +1115,7 @@ const App = () => {
                               </div>
                             )}
 
-                            {!(isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                               <div className="mt-4 flex justify-end">
                                 <button 
                                   onClick={() => submitSingleClassQuestion(idx)}
@@ -1036,7 +1128,7 @@ const App = () => {
                               </div>
                             )}
                             
-                            <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} />
+                            <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
                           </div>
                         );
                       }
@@ -1189,7 +1281,7 @@ const App = () => {
                           </div>
                         )}
                         
-                        <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} />
+                        <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
                       </div>
                       );
                     })}
@@ -1336,7 +1428,7 @@ const App = () => {
                                   value={opt}
                                   checked={homeworkAnswers[idx] === opt}
                                   onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
-                                  disabled={isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
                                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
                                 />
                                 <span className="text-gray-700"><MathText text={opt} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></span>
@@ -1348,13 +1440,13 @@ const App = () => {
                             <textarea
                               value={homeworkAnswers[idx] || ''}
                               onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
-                              disabled={isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
+                              disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
                               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
                               rows={4}
-                              placeholder="Type your answer here..."
+                              placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
-                              {!(isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                              {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
                               <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
                                 <ImageIcon className="w-4 h-4 mr-1" />
                                 Upload Work (Image)
@@ -1379,7 +1471,7 @@ const App = () => {
                               {homeworkImages[idx] && (
                                 <div className="relative mt-2">
                                   <img src={`data:image/jpeg;base64,${homeworkImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
-                                  {!(isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
                                   <button 
                                     onClick={() => setHomeworkImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
@@ -1414,7 +1506,7 @@ const App = () => {
                           </div>
                         )}
 
-                        {!(isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                        {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
                           <div className="mt-4 flex justify-end">
                             <button 
                               onClick={() => submitSingleHomeworkQuestion(idx)}
@@ -1427,7 +1519,7 @@ const App = () => {
                           </div>
                         )}
                         
-                        <ProblemChat key={`homework-chat-${idx}`} question={q} pdfPath={activeHomeworkTask.pdf_materials?.[0]} />
+                        <ProblemChat key={`homework-chat-${idx}`} question={q} pdfPath={activeHomeworkTask.pdf_materials?.[0]} isParent={isParent} />
                       </div>
                       );
                     })}
