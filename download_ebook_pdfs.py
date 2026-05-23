@@ -85,7 +85,14 @@ function applyMarkdownFormatting(clone) {
 """
 
 # Target directory page URL
-DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-counting-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/precalculus-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/calculus-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol1-ebook/c0toc"
+DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
+
 LINK_SELECTOR = "a" 
 STATE_FILE = "auth_state.json" # File to save the login state
 
@@ -769,7 +776,15 @@ def cleanup_page(page):
     }""")
 
 def main():
-    output_dir = "output_pdfs"
+    #output_dir = "output_pdfs_intro-geometry-ebook"
+    #output_dir = "output_pdfs_intro-counting-ebook"
+    #output_dir = "output_pdfs_intro-number-theory-ebook"
+    #output_dir = "output_pdfs_intermediate-counting-ebook"
+    #output_dir = "output_pdfs_precalculus-ebook"
+    #output_dir = "output_pdfs_calculus-ebook"
+    #output_dir = "output_pdfs_aops-vol1-ebook"
+    output_dir = "output_pdfs_aops-vol2-ebook"
+    
     os.makedirs(output_dir, exist_ok=True)
     
     with sync_playwright() as p:
