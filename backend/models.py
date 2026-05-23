@@ -19,6 +19,7 @@ class Course(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(Text, nullable=True)
+    student_email = Column(String, index=True, nullable=True)
     
     tasks = relationship("DailyTask", back_populates="course", cascade="all, delete-orphan")
 

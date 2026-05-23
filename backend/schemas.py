@@ -44,6 +44,7 @@ class DailyTask(DailyTaskBase):
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
+    student_email: Optional[str] = None
 
 class Course(CourseBase):
     id: int
@@ -55,6 +56,7 @@ class Course(CourseBase):
 class ParseRequest(BaseModel):
     course_file_path: str
     pdf_directory_path: str
+    student_email: str
 
 class EvaluateRequest(BaseModel):
     question: str

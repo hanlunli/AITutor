@@ -386,6 +386,8 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [students, setStudents] = useState<any[]>([]);
+  const [selectedStudentEmail, setSelectedStudentEmail] = useState<string>('');
 
   // Modals state
   const [activeClassTask, setActiveClassTask] = useState<Task | null>(null);
@@ -413,9 +415,10 @@ const App = () => {
 
   const fetchTasks = async () => {
     try {
+      const studentEmailQuery = userRole === 'parent' ? selectedStudentEmail : userEmail;
       const [tasksRes, coursesRes, availableCoursesRes] = await Promise.all([
-        fetch(`${API_BASE}/tasks`),
-        fetch(`${API_BASE}/courses`),
+        fetch(`${API_BASE}/tasks`), // Tasks are fetched all at once, then filtered by course
+        fetch(`${API_BASE}/courses${studentEmailQuery ? `?student_email=${encodeURIComponent(studentEmailQuery)}` : ''}`),
         fetch(`${API_BASE}/available_courses`)
       ]);
       const tasksData = await tasksRes.json();
@@ -434,11 +437,36 @@ const App = () => {
     }
   };
 
+  const fetchStudents = async () => {
+    if (userRole === 'parent') {
+      try {
+        const res = await fetch(`${API_BASE}/students?parent_email=${encodeURIComponent(userEmail)}`);
+        const data = await res.json();
+        setStudents(data);
+        if (data.length > 0 && !selectedStudentEmail) {
+          setSelectedStudentEmail(data[0].email);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
+      if (userRole === 'parent') {
+        fetchStudents();
+      } else {
+        fetchTasks();
+      }
+    }
+  }, [isLoggedIn, userRole]);
+
+  useEffect(() => {
+    if (isLoggedIn && userRole === 'parent' && selectedStudentEmail) {
       fetchTasks();
     }
-  }, [isLoggedIn]);
+  }, [selectedStudentEmail]);
 
   useEffect(() => {
     if (!selectedCourseId || !availableCourses.length) {
@@ -464,6 +492,11 @@ const App = () => {
       alert("Please select a course first.");
       return;
     }
+    const studentEmailToUse = userRole === 'parent' ? selectedStudentEmail : userEmail;
+    if (!studentEmailToUse) {
+      alert("Please select a student first.");
+      return;
+    }
     
     const selectedCourse = availableCourses.find(c => c.id === selectedCourseId);
     if (!selectedCourse) return;
@@ -475,7 +508,8 @@ const App = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           course_file_path: selectedCourse.file_path,
-          pdf_directory_path: selectedCourse.pdf_dir
+          pdf_directory_path: selectedCourse.pdf_dir,
+          student_email: studentEmailToUse
         })
       });
       if (res.ok) {
@@ -489,6 +523,29 @@ const App = () => {
       alert('Failed to connect to the server.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearCourse = async () => {
+    const generated = generatedCourses.find(c => c.title === courseTitle);
+    if (!generated) return;
+    
+    if (!confirm(`Are you sure you want to clear the course "${courseTitle}" for student ${selectedStudentEmail}? All progress will be lost.`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/courses/${generated.id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await fetchTasks();
+      } else {
+        alert('Failed to clear course');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Network error');
     }
   };
 
@@ -976,7 +1033,18 @@ const App = () => {
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 relative">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h1 className="text-2xl font-bold text-gray-900">{courseTitle}</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {isParent && students.length > 0 && (
+                <select 
+                  value={selectedStudentEmail} 
+                  onChange={(e) => setSelectedStudentEmail(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {students.map(s => (
+                    <option key={s.email} value={s.email}>{s.email}</option>
+                  ))}
+                </select>
+              )}
               <select 
                 value={selectedCourseId} 
                 onChange={(e) => setSelectedCourseId(e.target.value)}
@@ -987,14 +1055,24 @@ const App = () => {
                 ))}
               </select>
               {isParent && (
-                <button 
-                  onClick={handleParse}
-                  disabled={loading || !selectedCourseId}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-                  {loading ? 'Generating...' : 'Generate Timeline'}
-                </button>
+                <>
+                  <button 
+                    onClick={handleParse}
+                    disabled={loading || !selectedCourseId || !selectedStudentEmail}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                    {loading ? 'Generating...' : 'Generate Timeline'}
+                  </button>
+                  {generatedCourses.find(c => c.title === courseTitle) && (
+                    <button 
+                      onClick={handleClearCourse}
+                      className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
+                    >
+                      Clear Course
+                    </button>
+                  )}
+                </>
               )}
               <button 
                 onClick={() => {

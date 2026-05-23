@@ -184,12 +184,19 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
             pdf_name_to_path[name] = p
     
     # 2. Create Course
-    existing_course = db.query(models.Course).filter(models.Course.title == course_title).first()
+    existing_course = db.query(models.Course).filter(
+        models.Course.title == course_title,
+        models.Course.student_email == request.student_email
+    ).first()
     if existing_course:
         db.delete(existing_course)
         db.commit()
 
-    db_course = models.Course(title=course_title, description="Generated from JSON mapping")
+    db_course = models.Course(
+        title=course_title, 
+        description="Generated from JSON mapping",
+        student_email=request.student_email
+    )
     db.add(db_course)
     db.commit()
     db.refresh(db_course)
@@ -324,8 +331,28 @@ def get_available_courses():
     return courses
 
 @app.get("/api/courses", response_model=List[schemas.Course])
-def get_courses(db: Session = Depends(get_db)):
-    return db.query(models.Course).all()
+def get_courses(student_email: str = None, db: Session = Depends(get_db)):
+    query = db.query(models.Course)
+    if student_email:
+        query = query.filter(models.Course.student_email == student_email)
+    return query.all()
+
+@app.delete("/api/courses/{course_id}")
+def delete_course(course_id: int, db: Session = Depends(get_db)):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    db.delete(course)
+    db.commit()
+    return {"message": "Course deleted"}
+
+@app.get("/api/students")
+def get_students(parent_email: str, db: Session = Depends(get_db)):
+    students = db.query(models.User).filter(
+        models.User.role == 'student',
+        models.User.parent_email == parent_email
+    ).all()
+    return [{"email": s.email} for s in students]
 
 @app.get("/api/tasks", response_model=List[schemas.DailyTask])
 def get_tasks(course_id: int = None, db: Session = Depends(get_db)):
