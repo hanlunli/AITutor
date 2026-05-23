@@ -549,6 +549,38 @@ const App = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const password = prompt("Please enter your password to confirm account deletion:");
+    if (!password) return;
+
+    if (!confirm("Are you ABSOLUTELY sure you want to delete your account? This action cannot be undone. If you are a parent, this will also delete all associated student accounts.")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, password: password })
+      });
+
+      if (res.ok) {
+        alert("Account deleted successfully.");
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userRole');
+        setIsLoggedIn(false);
+        setUserEmail('');
+        setUserRole(null);
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to delete account: ${errorData.detail}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Network error while trying to delete account.");
+    }
+  };
+
   const toggleStatus = async (taskId: number, field: 'class_status' | 'homework_status', currentStatus: string) => {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     try {
@@ -558,7 +590,8 @@ const App = () => {
         body: JSON.stringify({ [field]: newStatus, student_email: userEmail })
       });
       if (res.ok) {
-        setTasks(tasks.map(t => t.id === taskId ? { ...t, [field]: newStatus } : t));
+        const updatedTask = await res.json();
+        setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
       }
     } catch (e) {
       console.error(e);
@@ -1085,6 +1118,12 @@ const App = () => {
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
               >
                 Sign out
+              </button>
+              <button 
+                onClick={handleDeleteAccount}
+                className="bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
+              >
+                Delete Account
               </button>
             </div>
           </div>

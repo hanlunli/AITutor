@@ -1,6 +1,8 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr
+from email.header import Header
 import os
 from dotenv import load_dotenv
 
@@ -17,7 +19,8 @@ def send_email(to_email: str, subject: str, body: str):
         return False
         
     msg = MIMEMultipart()
-    msg['From'] = SMTP_USERNAME
+    # Use formataddr to properly encode the sender name
+    msg['From'] = formataddr((str(Header('AITutor', 'utf-8')), SMTP_USERNAME))
     msg['To'] = to_email
     msg['Subject'] = subject
 
@@ -29,10 +32,20 @@ def send_email(to_email: str, subject: str, body: str):
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"Successfully sent email to {to_email}")
+        import sys
+        print(f"==================================================", file=sys.stderr)
+        print(f"SUCCESS: Email sent to {to_email}", file=sys.stderr)
+        print(f"SUBJECT: {subject}", file=sys.stderr)
+        print(f"==================================================", file=sys.stderr)
+        sys.stderr.flush()
         return True
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        import sys
+        print(f"==================================================", file=sys.stderr)
+        print(f"ERROR: Failed to send email to {to_email}", file=sys.stderr)
+        print(f"DETAILS: {e}", file=sys.stderr)
+        print(f"==================================================", file=sys.stderr)
+        sys.stderr.flush()
         return False
 
 def send_activation_email(to_email: str, code: str):
@@ -91,7 +104,9 @@ def send_combined_task_completion_report(student_email: str, parent_email: str, 
     """
     
     if not parent_email:
-        print("No parent email found in the database. Skipping report email.")
+        import sys
+        print(f"WARNING: No parent email found in the database for student {student_email}. Skipping report email.", file=sys.stderr)
+        sys.stderr.flush()
         return False
         
     return send_email(parent_email, subject, body)

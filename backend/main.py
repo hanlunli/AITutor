@@ -31,6 +31,13 @@ def hash_password(password: str) -> str:
 
 @app.post("/api/auth/register")
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    if user.role == 'student':
+        if not user.parent_email:
+            raise HTTPException(status_code=400, detail="Parent email is required for students")
+        parent_user = db.query(models.User).filter(models.User.email == user.parent_email, models.User.role == 'parent').first()
+        if not parent_user:
+            raise HTTPException(status_code=400, detail="Parent email must belong to an existing parent account")
+
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         if db_user.is_active:
@@ -88,6 +95,31 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Account not activated. Please register again to get a new code.")
         
     return {"email": db_user.email, "role": db_user.role}
+
+@app.delete("/api/auth/delete")
+def delete_account(req: schemas.DeleteAccountRequest, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == req.email).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if db_user.hashed_password != hash_password(req.password):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+        
+    if db_user.role == 'parent':
+        # Delete all students associated with this parent
+        students = db.query(models.User).filter(models.User.parent_email == db_user.email).all()
+        for student in students:
+            # Also delete courses associated with student
+            db.query(models.Course).filter(models.Course.student_email == student.email).delete()
+            db.delete(student)
+            
+    # Delete courses associated with this user (if student)
+    if db_user.role == 'student':
+        db.query(models.Course).filter(models.Course.student_email == db_user.email).delete()
+        
+    db.delete(db_user)
+    db.commit()
+    return {"message": "Account deleted successfully"}
 
 @app.post("/api/parse", response_model=schemas.Course)
 async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_db)):
@@ -424,7 +456,12 @@ def update_task_status(task_id: int, task_update: schemas.DailyTaskUpdate, db: S
                 homework_stats=homework_stats
             )
         except Exception as e:
-            print(f"Failed to send completion email: {e}")
+            import sys
+            print(f"==================================================", file=sys.stderr)
+            print(f"ERROR: Failed to send completion email", file=sys.stderr)
+            print(f"DETAILS: {e}", file=sys.stderr)
+            print(f"==================================================", file=sys.stderr)
+            sys.stderr.flush()
             
     db.commit()
     db.refresh(db_task)

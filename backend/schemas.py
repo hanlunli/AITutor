@@ -11,6 +11,10 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class DeleteAccountRequest(BaseModel):
+    email: str
+    password: str
+
 class VerifyCodeRequest(BaseModel):
     email: str
     code: str
