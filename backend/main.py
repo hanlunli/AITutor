@@ -411,6 +411,29 @@ def _calculate_stats(data: dict):
         'attempts': attempts
     }
 
+@app.post("/api/tasks/{task_id}/reminder")
+def set_task_reminder(task_id: int, request: dict, db: Session = Depends(get_db)):
+    db_task = db.query(models.DailyTask).filter(models.DailyTask.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    student_email = request.get('student_email')
+    reminder_time = request.get('reminder_time')
+    
+    if not student_email:
+        raise HTTPException(status_code=400, detail="Student email required")
+        
+    if reminder_time == "clear":
+        if db_task.reminder_time:
+            email_service.send_calendar_invite(student_email, db_task.topic, db_task.reminder_time, task_id, action="CANCEL")
+        db_task.reminder_time = None
+    else:
+        db_task.reminder_time = reminder_time
+        email_service.send_calendar_invite(student_email, db_task.topic, reminder_time, task_id, action="REQUEST")
+        
+    db.commit()
+    return {"message": "Reminder updated"}
+
 @app.patch("/api/tasks/{task_id}", response_model=schemas.DailyTask)
 def update_task_status(task_id: int, task_update: schemas.DailyTaskUpdate, db: Session = Depends(get_db)):
     db_task = db.query(models.DailyTask).filter(models.DailyTask.id == task_id).first()
@@ -430,6 +453,8 @@ def update_task_status(task_id: int, task_update: schemas.DailyTaskUpdate, db: S
         db_task.class_data = task_update.class_data
     if task_update.homework_data is not None:
         db_task.homework_data = task_update.homework_data
+    if task_update.reminder_time is not None:
+        db_task.reminder_time = task_update.reminder_time if task_update.reminder_time != "clear" else None
 
     def is_completed(c_status, h_status):
         c_done = c_status in ['completed', 'na']

@@ -29,6 +29,7 @@ class DailyTaskBase(BaseModel):
     class_data: Optional[dict] = None
     homework_data: Optional[dict] = None
     has_problems: Optional[bool] = True
+    reminder_time: Optional[str] = None
 
 class DailyTaskUpdate(BaseModel):
     class_status: Optional[str] = None
@@ -36,6 +37,7 @@ class DailyTaskUpdate(BaseModel):
     class_data: Optional[dict] = None
     homework_data: Optional[dict] = None
     student_email: Optional[str] = None
+    reminder_time: Optional[str] = None
 
 class DailyTask(DailyTaskBase):
     id: int

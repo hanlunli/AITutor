@@ -39,6 +39,7 @@ class DailyTask(Base):
     homework_status = Column(String, default="pending")  # pending, completed, na
     class_data = Column(JSON, nullable=True)
     homework_data = Column(JSON, nullable=True)
+    reminder_time = Column(String, nullable=True)
 
     course = relationship("Course", back_populates="tasks")
 
