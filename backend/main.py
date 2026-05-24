@@ -297,11 +297,13 @@ def get_file(filepath: str):
     # URL decode the filepath just in case
     filepath = urllib.parse.unquote(filepath)
     
-    # Resolve the absolute path
-    abs_filepath = os.path.abspath(filepath)
+    # Resolve the absolute path relative to the backend directory
+    # This handles paths like "..\output_pdfs_..." correctly
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    abs_filepath = os.path.abspath(os.path.join(backend_dir, filepath))
     
     # Security check: ensure it doesn't escape the project root
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_root = os.path.dirname(backend_dir)
     if not abs_filepath.startswith(project_root):
         raise HTTPException(status_code=400, detail="Invalid filepath: Access denied")
         

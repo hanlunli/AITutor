@@ -28,6 +28,7 @@ class DailyTaskBase(BaseModel):
     pdf_materials: List[str] = []
     class_data: Optional[dict] = None
     homework_data: Optional[dict] = None
+    has_problems: Optional[bool] = True
 
 class DailyTaskUpdate(BaseModel):
     class_status: Optional[str] = None

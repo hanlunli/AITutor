@@ -41,3 +41,14 @@ class DailyTask(Base):
     homework_data = Column(JSON, nullable=True)
 
     course = relationship("Course", back_populates="tasks")
+
+    @property
+    def has_problems(self) -> bool:
+        import os
+        if self.pdf_materials:
+            pdf_path = self.pdf_materials[0]
+            base_path = os.path.splitext(pdf_path)[0]
+            backend_dir = os.path.dirname(os.path.abspath(__file__))
+            abs_base_path = os.path.abspath(os.path.join(backend_dir, base_path))
+            return os.path.exists(abs_base_path + "_Problems.json")
+        return False

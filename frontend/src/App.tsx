@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, FileText, Loader2, X, MessageSquare, Send, Image as ImageIcon, BookOpen, Pencil, Key, AlertCircle, Ban, Dices, Music, Box, PlayCircle } from 'lucide-react'
+import { CheckCircle2, FileText, Loader2, X, MessageSquare, Send, Image as ImageIcon, BookOpen, Pencil, Key, AlertCircle, Ban, Dices, Music, Box, PlayCircle, LogOut, Trash2, Sparkles, Users, UserX } from 'lucide-react'
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
@@ -17,6 +17,7 @@ interface Task {
   homework_status: string;
   class_data?: any;
   homework_data?: any;
+  has_problems?: boolean;
 }
 
 interface Question {
@@ -192,45 +193,98 @@ const MathText = ({ text, pdfPath }: { text: string, pdfPath?: string }) => {
               if (imgPart.startsWith('[IMAGE:') && imgPart.endsWith(']')) {
                 const imgRelPath = imgPart.slice(7, -1).trim();
                 const imgSrc = pdfPath ? getImageUrl(pdfPath, imgRelPath) : '';
-                return <img key={i} src={imgSrc} alt="Problem graphic" className="my-4 max-w-full h-auto rounded shadow-sm border border-gray-200 block mx-auto bg-white p-2" />;
+                return (
+                  <div key={i} className="my-4 max-w-[80%] sm:max-w-[60%] mx-auto rounded shadow-sm border border-slate-200 p-3 bg-white flex justify-center">
+                    <img 
+                      src={imgSrc} 
+                      alt="Problem graphic" 
+                      crossOrigin="anonymous"
+                      className="max-w-full h-auto block"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        if (!img.src.toLowerCase().endsWith('.png')) return;
+                        try {
+                          const c = document.createElement('canvas');
+                          c.width = img.naturalWidth; c.height = img.naturalHeight;
+                          const ctx = c.getContext('2d');
+                          if (!ctx) return;
+                          ctx.drawImage(img, 0, 0);
+                          const data = ctx.getImageData(0, 0, c.width, c.height).data;
+                          let hasTransparent = false, isWhite = true;
+                          for (let j = 0; j < data.length; j += 4) {
+                            if (data[j+3] < 50) hasTransparent = true;
+                            else if (data[j] < 200 || data[j+1] < 200 || data[j+2] < 200) {
+                              isWhite = false; break;
+                            }
+                          }
+                          if (hasTransparent && isWhite) img.classList.add('invert');
+                        } catch (err) {}
+                      }}
+                    />
+                  </div>
+                );
               }
               
-              // Render math in text part
-              const mathParts = imgPart.split(/(\$\$.*?\$\$|\$.*?\$)/g);
+              // Extract math first to avoid '*' inside math breaking the formatting
+              const mathBlocks: string[] = [];
+              const textWithPlaceholders = imgPart.replace(/(\$\$.*?\$\$|\$.*?\$)/g, (match) => {
+                mathBlocks.push(match);
+                return `__MATH_${mathBlocks.length - 1}__`;
+              });
+
+              // We also need to handle cases where there are quotes around the asterisks, like *"..."* or *“...”*
+              const styleParts = textWithPlaceholders.split(/(\*\*.*?\*\*|\*“.*?”\*|\*".*?"\*|\*.*?\*)/g);
+              
               return (
                 <span key={i}>
-                  {mathParts.map((part, j) => {
-                    if (part.startsWith('$$') && part.endsWith('$$')) {
-                      return <BlockMath key={j} math={part.slice(2, -2)} errorColor={'#cc0000'} renderError={() => <span className="text-red-500 font-mono text-sm">{part}</span>} />;
-                    }
-                    if (part.startsWith('$') && part.endsWith('$')) {
-                      return <InlineMath key={j} math={part.slice(1, -1)} errorColor={'#cc0000'} renderError={() => <span className="text-red-500 font-mono text-sm">{part}</span>} />;
+                  {styleParts.map((sPart, j) => {
+                    if (!sPart) return null;
+                    
+                    let content = sPart;
+                    let isBold = false;
+                    let isItalic = false;
+                    
+                    if (sPart.startsWith('**') && sPart.endsWith('**')) {
+                      isBold = true;
+                      content = sPart.slice(2, -2);
+                    } else if (sPart.startsWith('*“') && sPart.endsWith('”*')) {
+                      isItalic = true;
+                      content = `“${sPart.slice(2, -2)}”`;
+                    } else if (sPart.startsWith('*"') && sPart.endsWith('"*')) {
+                      isItalic = true;
+                      content = `"${sPart.slice(2, -2)}"`;
+                    } else if (sPart.startsWith('*') && sPart.endsWith('*')) {
+                      isItalic = true;
+                      content = sPart.slice(1, -1);
                     }
                     
-                    // Handle bold and italics in plain text parts
-                    const styleParts = part.split(/(\*\*.*?\*\*|\*.*?\*)/g);
-                    return (
-                      <span key={j}>
-                        {styleParts.map((sPart, k) => {
-                          if (sPart.startsWith('**') && sPart.endsWith('**')) {
-                            return <strong key={k}>{sPart.slice(2, -2)}</strong>;
-                          }
-                          if (sPart.startsWith('*') && sPart.endsWith('*')) {
-                            return <em key={k}>{sPart.slice(1, -1)}</em>;
-                          }
-                          return (
-                            <span key={k}>
-                              {sPart.split('\n').map((line, lIdx, arr) => (
-                                <span key={lIdx}>
-                                  {line}
-                                  {lIdx < arr.length - 1 && <br />}
-                                </span>
-                              ))}
+                    const contentParts = content.split(/__MATH_(\d+)__/g);
+                    
+                    const renderedContent = contentParts.map((part, k) => {
+                      if (k % 2 === 1) { // It's a math placeholder index
+                        const mathIdx = parseInt(part, 10);
+                        const mathStr = mathBlocks[mathIdx];
+                        if (mathStr.startsWith('$$') && mathStr.endsWith('$$')) {
+                          return <BlockMath key={k} math={mathStr.slice(2, -2)} errorColor={'#cc0000'} renderError={() => <span className="text-red-500 font-mono text-sm">{mathStr}</span>} />;
+                        }
+                        return <InlineMath key={k} math={mathStr.slice(1, -1)} errorColor={'#cc0000'} renderError={() => <span className="text-red-500 font-mono text-sm">{mathStr}</span>} />;
+                      }
+                      
+                      return (
+                        <span key={k}>
+                          {part.split('\n').map((line, lIdx, arr) => (
+                            <span key={lIdx}>
+                              {line}
+                              {lIdx < arr.length - 1 && <br />}
                             </span>
-                          );
-                        })}
-                      </span>
-                    );
+                          ))}
+                        </span>
+                      );
+                    });
+
+                    if (isBold) return <strong key={j}>{renderedContent}</strong>;
+                    if (isItalic) return <em key={j}>{renderedContent}</em>;
+                    return <span key={j}>{renderedContent}</span>;
                   })}
                 </span>
               );
@@ -384,6 +438,8 @@ const App = () => {
   const [generatedCourses, setGeneratedCourses] = useState<any[]>([]);
   const [courseTitle, setCourseTitle] = useState('AITutor Timeline');
   const [loading, setLoading] = useState(false);
+  const [showCourseSelector, setShowCourseSelector] = useState(false);
+  const [showStudentSelector, setShowStudentSelector] = useState(false);
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [students, setStudents] = useState<any[]>([]);
@@ -412,6 +468,8 @@ const App = () => {
   const [homeworkLoading, setHomeworkLoading] = useState(false);
   const [evaluatingHomework, setEvaluatingHomework] = useState<Record<number, boolean>>({});
   const [homeworkCurrentIndex, setHomeworkCurrentIndex] = useState(0);
+
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     try {
@@ -650,6 +708,13 @@ const App = () => {
       } else {
          setClassQuestions(qData);
          setClassContentFlow(cData);
+         // Initialize solutions to be shown by default for parents
+         const initialShow: Record<number, boolean> = {};
+         qData.forEach((_: any, i: number) => initialShow[i] = true);
+         cData.forEach((item: any, i: number) => {
+           if (item.type === 'problem') initialShow[i] = true;
+         });
+         setShowClassSolutions(initialShow);
       }
     } catch(e) {
       console.error(e);
@@ -772,6 +837,11 @@ const App = () => {
             });
             setHomeworkEvaluations(cleanEvals);
             setHomeworkAttempts(cleanAttempts);
+            
+            // Initialize solutions to be shown by default for parents
+            const initialShow: Record<number, boolean> = {};
+            data.forEach((_: any, i: number) => initialShow[i] = true);
+            setShowHomeworkSolutions(initialShow);
         }
       } else {
         const errorData = await resQuestions.json().catch(() => ({}));
@@ -1059,53 +1129,62 @@ const App = () => {
   const isParent = userRole === 'parent';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-8 px-2 sm:px-4 lg:px-8">
-      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-indigo-50 to-fuchsia-50 py-6 sm:py-10 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
         {/* Header & Progress */}
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 relative">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">{courseTitle}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              {isParent && students.length > 0 && (
-                <select 
-                  value={selectedStudentEmail} 
-                  onChange={(e) => setSelectedStudentEmail(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200/60 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-blue-500 to-sky-400"></div>
+          
+          {/* Top Row: Title & Account Actions */}
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-6">
+            <div className="flex items-start gap-4 flex-1 pr-4">
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowCourseSelector(true)}
+                  className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center shrink-0 mt-1 hover:bg-indigo-200 transition-colors cursor-pointer"
+                  title="Select Course"
                 >
-                  {students.map(s => (
-                    <option key={s.email} value={s.email}>{s.email}</option>
-                  ))}
-                </select>
-              )}
-              <select 
-                value={selectedCourseId} 
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {availableCourses.map(course => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
-              {isParent && (
-                <>
+                  <BookOpen className="w-6 h-6 text-indigo-600" />
+                </button>
+                {isParent && students.length > 0 && (
                   <button 
-                    onClick={handleParse}
-                    disabled={loading || !selectedCourseId || !selectedStudentEmail}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setShowStudentSelector(true)}
+                    className="w-12 h-12 bg-fuchsia-100 rounded-2xl flex items-center justify-center shrink-0 mt-1 hover:bg-fuchsia-200 transition-colors cursor-pointer"
+                    title="Select Student"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
-                    {loading ? 'Generating...' : 'Generate Timeline'}
+                    <Users className="w-6 h-6 text-fuchsia-600" />
                   </button>
-                  {generatedCourses.find(c => c.title === courseTitle) && (
-                    <button 
-                      onClick={handleClearCourse}
-                      className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
-                    >
-                      Clear Course
-                    </button>
-                  )}
-                </>
+                )}
+              </div>
+              <div className="flex flex-col pt-1 w-full overflow-hidden">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight leading-tight pb-1 pr-2 break-words">{courseTitle}</h1>
+                {isParent && selectedStudentEmail && (
+                  <span className="text-sm font-medium text-slate-500 mt-1">Student: {selectedStudentEmail}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Account Actions */}
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-start">
+              {isParent && (
+                <button 
+                  onClick={handleParse}
+                  disabled={loading || !selectedCourseId || !selectedStudentEmail}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3 py-2 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : <Sparkles className="w-4 h-4 mr-1.5" />}
+                  {loading ? 'Generating...' : 'Generate Timeline'}
+                </button>
+              )}
+              {isParent && generatedCourses.find(c => c.title === courseTitle) && (
+                <button 
+                  onClick={handleClearCourse}
+                  className="text-rose-600 bg-rose-50 hover:bg-rose-100 text-sm font-medium px-3 py-2 rounded-xl transition-colors flex items-center shadow-sm"
+                  title="Clear Course"
+                >
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Clear Course
+                </button>
               )}
               <button 
                 onClick={() => {
@@ -1115,32 +1194,34 @@ const App = () => {
                   setUserEmail('');
                   setUserRole(null);
                 }}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
+                className="text-slate-500 hover:text-slate-700 text-sm font-medium px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors flex items-center"
+                title="Sign out"
               >
-                Sign out
+                <LogOut className="w-4 h-4" />
               </button>
               <button 
                 onClick={handleDeleteAccount}
-                className="bg-red-100 hover:bg-red-200 text-red-800 text-sm font-medium py-1.5 px-3 rounded transition-colors flex items-center justify-center"
+                className="text-red-500 hover:text-red-700 text-sm font-medium px-3 py-2 rounded-xl hover:bg-red-50 transition-colors flex items-center"
+                title="Delete Account"
               >
-                Delete Account
+                <UserX className="w-4 h-4" />
               </button>
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm font-medium text-gray-600">
-              <span>Overall Progress</span>
-              <span>{completedDays} / {totalDays} Tasks ({progress}%)</span>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm font-semibold text-slate-700">
+              <span className="flex items-center">Overall Progress</span>
+              <span className="bg-slate-50 px-3 py-1 rounded-full border border-slate-200 shadow-sm">{completedDays} / {totalDays} Tasks ({progress}%)</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden shadow-inner">
+              <div className="bg-gradient-to-r from-indigo-500 to-blue-500 h-3 rounded-full transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
         </div>
 
-
         {/* Timeline Section */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {(() => {
             const chapters: {name: string, tasks: Task[]}[] = [];
             let currentChapter: string | null = null;
@@ -1161,113 +1242,248 @@ const App = () => {
               chapters.push({ name: currentChapter, tasks: currentTasks });
             }
 
-            return chapters.map((chap, cIdx) => (
-              <div key={cIdx} className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-gray-200 pb-2 mb-0">{chap.name}</h2>
-                <div className="bg-white rounded-b-xl shadow-sm border border-t-0 border-gray-200 divide-y divide-gray-100">
-                  {chap.tasks.map(task => {
-                    const firstPdf = task.pdf_materials?.[0] || '';
-                    const isReview = firstPdf.endsWith('pr.pdf');
-                    const isChallenge = firstPdf.endsWith('pc.pdf');
-                    
-                    let classContentTitle = "Problems";
-                    if (isReview) {
-                      classContentTitle = "Review Problems";
-                    } else if (isChallenge) {
-                      classContentTitle = "Challenge Problems";
-                    }
+            if (chapters.length === 0) return null;
 
-                    return (
-                      <div key={task.id} className="p-4 sm:px-6 sm:py-5 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex-grow">
-                          <h3 className="text-lg font-semibold text-gray-800">{task.topic}</h3>
+            // Default to the first chapter if none is selected
+            const activeChapterName = expandedChapter || chapters[0].name;
+            const activeChapter = chapters.find(c => c.name === activeChapterName) || chapters[0];
+
+            return (
+              <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+                {/* Chapter Tabs (Sidebar on Desktop, Horizontal Scroll on Mobile) */}
+                <div className="md:w-1/3 lg:w-1/4 shrink-0">
+                  <div className="sticky top-6 flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-4 md:pb-0 hide-scrollbar">
+                    {chapters.map((chap, cIdx) => {
+                      const isActive = chap.name === activeChapterName;
+                      const completedTasks = chap.tasks.filter(t => 
+                        (t.class_status === 'completed' || t.class_status === 'na') && 
+                        (t.homework_status === 'completed' || t.homework_status === 'na')
+                      ).length;
+                      const isAllCompleted = completedTasks === chap.tasks.length && chap.tasks.length > 0;
+                      const chapterProgress = chap.tasks.length > 0 ? Math.round((completedTasks / chap.tasks.length) * 100) : 0;
+                      
+                      return (
+                        <button
+                          key={cIdx}
+                          onClick={() => setExpandedChapter(chap.name)}
+                          className={`text-left px-5 py-4 rounded-2xl transition-all duration-300 flex-shrink-0 md:flex-shrink flex flex-col gap-1 border ${
+                            isActive 
+                              ? 'bg-indigo-600 text-white shadow-md border-indigo-600' 
+                              : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200 hover:border-indigo-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span className={`text-xs font-bold uppercase tracking-wider ${isActive ? 'text-indigo-200' : 'text-slate-400'}`}>Chapter {cIdx + 1}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-slate-500'}`}>{completedTasks}/{chap.tasks.length}</span>
+                              {isAllCompleted && <CheckCircle2 className={`w-4 h-4 ${isActive ? 'text-emerald-300' : 'text-emerald-500'}`} />}
+                            </div>
+                          </div>
+                          <span className={`font-semibold text-sm sm:text-base line-clamp-2 ${isActive ? 'text-white' : 'text-slate-800'}`}>{chap.name.replace(/^\d+[\.\s]*/, '')}</span>
+                          <div className="mt-2 w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className={`h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-indigo-500'}`} 
+                              style={{ width: `${chapterProgress}%` }}
+                            ></div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Chapter Content */}
+                <div className="md:w-2/3 lg:w-3/4">
+                  <div className="mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 flex items-center">
+                      {activeChapter.name.replace(/^\d+[\.\s]*/, '')}
+                    </h2>
+                  </div>
+                  
+                  <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                    {activeChapter.tasks.map((task) => {
+                      const firstPdf = task.pdf_materials?.[0] || '';
+                      const isReview = firstPdf.endsWith('pr.pdf');
+                      const isChallenge = firstPdf.endsWith('pc.pdf');
+                      
+                      let classContentTitle = "Problems";
+                      if (isReview) {
+                        classContentTitle = "Review Problems";
+                      } else if (isChallenge) {
+                        classContentTitle = "Challenge Problems";
+                      }
+
+                      return (
+                        <div key={task.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-50 bg-indigo-100 text-indigo-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
+                            <span className="font-bold text-sm">{task.day_number}</span>
+                          </div>
+                          <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                              <div className="flex items-center flex-wrap gap-3">
+                                <h3 className="text-lg font-bold text-slate-800 leading-tight">{task.topic.replace(/^Chapter\s+\d+\s*/i, '')}</h3>
+                                {task.pdf_materials && task.pdf_materials.length > 0 && (
+                                  <a 
+                                    href={`${API_BASE}/files/${encodeURIComponent(task.pdf_materials[0])}`}
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-black transition-colors"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 mr-1" /> PDF
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                              {task.class_status !== 'na' && (
+                                <button 
+                                  onClick={() => openClassContent(task)}
+                                  className={`flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${task.class_status === 'completed' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'}`}
+                                >
+                                  {task.class_status === 'completed' ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <BookOpen className="w-4 h-4 mr-2" />}
+                                  {isReview || isChallenge ? classContentTitle : (task.has_problems ? 'Study & Problems' : 'Study')}
+                                </button>
+                              )}
+                              {!isReview && !isChallenge && task.homework_status !== 'na' && (
+                                <button 
+                                  onClick={() => openHomework(task)}
+                                  className={`flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${task.homework_status === 'completed' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'}`}
+                                >
+                                  {task.homework_status === 'completed' ? <CheckCircle2 className="w-4 h-4 mr-2" /> : <Pencil className="w-4 h-4 mr-2" />}
+                                  Exercises
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div className="flex flex-wrap items-center gap-3">
-                          {task.class_status !== 'na' && (
-                            <button
-                              onClick={() => openClassContent(task)}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${task.class_status === 'completed' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'}`}
-                            >
-                              {task.class_status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : <BookOpen className="w-4 h-4" />}
-                              {isReview || isChallenge ? classContentTitle : 'Study & Problems'}
-                            </button>
-                          )}
-
-                          {!isReview && !isChallenge && task.homework_status !== 'na' && (
-                            <button
-                              onClick={() => openHomework(task)}
-                              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${task.homework_status === 'completed' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'}`}
-                            >
-                              {task.homework_status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
-                              Exercises
-                            </button>
-                          )}
-
-                          {task.pdf_materials && task.pdf_materials.length > 0 && (
-                            <a 
-                              href={`${API_BASE}/files/${encodeURIComponent(task.pdf_materials[0])}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <FileText className="w-4 h-4" />
-                              PDF
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            ));
+            );
           })()}
           {tasks.length === 0 && !loading && (
-            <div className="text-center py-12 text-gray-500">
-              No tasks generated yet. Paste a syllabus above to get started!
+            <div className="text-center py-16 text-slate-500 bg-white rounded-3xl border border-slate-200 border-dashed">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-lg font-medium text-slate-600">No tasks generated yet</p>
+              <p className="text-sm mt-1">Select a course and click "Generate Timeline" to get started.</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Course Selection Modal */}
+      {showCourseSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                <BookOpen className="w-5 h-5 mr-2 text-indigo-600" />
+                Select Course
+              </h2>
+              <button onClick={() => setShowCourseSelector(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+              {availableCourses.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">No courses available.</p>
+              ) : (
+                availableCourses.map(course => (
+                  <button
+                    key={course.id}
+                    onClick={() => {
+                      setSelectedCourseId(course.id);
+                      setShowCourseSelector(false);
+                    }}
+                    className={`w-full text-left px-5 py-4 rounded-xl transition-all flex items-center justify-between group ${selectedCourseId === course.id ? 'bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200 shadow-sm' : 'hover:bg-slate-50 text-slate-700 border border-transparent hover:border-slate-200'}`}
+                  >
+                    <span className="line-clamp-2 pr-4">{course.title}</span>
+                    {selectedCourseId === course.id && <CheckCircle2 className="w-5 h-5 text-indigo-600 shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Selection Modal */}
+      {showStudentSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-fuchsia-600" />
+                Select Student
+              </h2>
+              <button onClick={() => setShowStudentSelector(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+              {students.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">No students available.</p>
+              ) : (
+                students.map(s => (
+                  <button
+                    key={s.email}
+                    onClick={() => {
+                      setSelectedStudentEmail(s.email);
+                      setShowStudentSelector(false);
+                    }}
+                    className={`w-full text-left px-5 py-4 rounded-xl transition-all flex items-center justify-between group ${selectedStudentEmail === s.email ? 'bg-fuchsia-50 text-fuchsia-700 font-semibold border border-fuchsia-200 shadow-sm' : 'hover:bg-slate-50 text-slate-700 border border-transparent hover:border-slate-200'}`}
+                  >
+                    <span className="line-clamp-2 pr-4">{s.email}</span>
+                    {selectedStudentEmail === s.email && <CheckCircle2 className="w-5 h-5 text-fuchsia-600 shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Class Content Modal */}
       {activeClassTask && (() => {
         const isTaskCompleted = activeClassTask.class_status === 'completed';
 
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-0 sm:p-4 overflow-y-auto">
-          <div className="bg-white sm:rounded-xl shadow-xl w-full h-full sm:h-auto max-w-3xl sm:max-h-[90vh] flex flex-col relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white sm:rounded-3xl shadow-2xl w-full h-full sm:h-auto max-w-5xl sm:max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-blue-500"></div>
             <button 
               onClick={() => setActiveClassTask(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors z-10"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
-            <div className="p-4 sm:p-6 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900">{activeClassTask.topic}</h2>
+            <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-2xl font-bold text-slate-900 pr-12">{activeClassTask.topic.replace(/^Chapter\s+\d+\s*/i, '')}</h2>
             </div>
-            <div className="p-4 sm:p-6 overflow-y-auto flex-grow space-y-8">
+            <div className="p-6 sm:p-8 overflow-y-auto flex-grow space-y-8 bg-slate-50/30">
               {classLoading && classQuestions.length === 0 && classContentFlow.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
-                  <p>Loading content...</p>
+                <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4 text-indigo-600" />
+                  <p className="text-lg font-medium">Loading content...</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-6 max-w-4xl mx-auto">
                   {classContentFlow.length > 0 ? (
                     classContentFlow.map((item, flowIdx) => {
                       if (item.type === 'paragraph') {
-                        return <p key={flowIdx} className="text-gray-800 text-lg leading-relaxed"><MathText text={item.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>;
+                        return <p key={flowIdx} className="text-slate-800 text-lg leading-relaxed"><MathText text={item.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>;
                       } else if (item.type === 'summary') {
                         return (
-                          <div key={flowIdx} className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-gray-800">
+                          <div key={flowIdx} className="bg-amber-50 border-l-4 border-amber-400 p-5 rounded-r-xl text-slate-800 shadow-sm">
                             <MathText text={item.text} pdfPath={activeClassTask.pdf_materials?.[0]} />
                           </div>
                         );
                       } else if (item.type === 'image_block') {
-                        return <div key={flowIdx}><MathText text={item.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>;
+                        return <div key={flowIdx} className="my-6"><MathText text={item.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>;
                       } else if (item.type === 'iconbox') {
                         return <MathText key={flowIdx} text={`[ICONBOX:${item.iconType}:${item.title || ''}]\n${item.text}\n[/ICONBOX]`} pdfPath={activeClassTask.pdf_materials?.[0]} />;
                       } else if (item.type === 'problem_box') {
@@ -1276,7 +1492,7 @@ const App = () => {
                         if (qIdx === -1) {
                            // If problem not found in parsed questions, just show a placeholder
                            return (
-                             <div key={flowIdx} className="bg-gray-100 p-4 rounded text-center text-gray-500">
+                             <div key={flowIdx} className="bg-slate-100 p-5 rounded-xl text-center text-slate-500 border border-slate-200 border-dashed">
                                {item.number} (Interactive element not available)
                              </div>
                            );
@@ -1284,30 +1500,35 @@ const App = () => {
                         const q = classQuestions[qIdx];
                         const idx = qIdx; // mapping index for answers and evaluation
                         return (
-                          <div key={flowIdx} className="space-y-3 bg-gray-50 p-5 rounded-lg border border-gray-100 my-8 shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                              <p className="font-medium text-gray-800"><span className="text-blue-600 mr-2">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>
-                              {q.solution && (
+                          <div key={flowIdx} className="space-y-4 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm my-10">
+                            <div className="flex justify-between items-start mb-4">
+                              <p className="font-medium text-slate-800 text-lg leading-relaxed"><span className="text-indigo-600 font-bold mr-3 bg-indigo-50 px-2 py-1 rounded-lg">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>
+                              {isParent && (q.solution || q.answer) && (
                                 <button
                                   onClick={() => setShowClassSolutions(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                                  className="flex-shrink-0 ml-4 text-sm font-medium text-blue-600 hover:text-blue-800"
+                                  className="flex-shrink-0 ml-4 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
                                 >
                                   {showClassSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
                                 </button>
                               )}
                             </div>
 
-                            {q.solution && showClassSolutions[idx] && (
-                              <div className="p-4 bg-blue-50/50 rounded border border-blue-100 text-sm text-gray-800 mb-4">
-                                <h4 className="font-bold text-blue-800 mb-2">Solution:</h4>
-                                <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} />
+                            {isParent && (q.solution || q.answer) && showClassSolutions[idx] && (
+                              <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-slate-800 mb-6">
+                                <h4 className="font-bold text-indigo-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
+                                {q.answer && (
+                                  <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                )}
+                                {q.solution && (
+                                  <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                )}
                               </div>
                             )}
                             
                             {q.type === 'mcq' && q.options ? (
-                              <div className="space-y-2 mt-3">
+                              <div className="space-y-3 mt-4">
                                 {q.options.map((opt, optIdx) => (
-                                  <label key={optIdx} className="flex items-center space-x-3 p-3 rounded-md bg-white border border-gray-200 cursor-pointer hover:bg-blue-50 transition-colors">
+                                  <label key={optIdx} className="flex items-center space-x-4 p-4 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all">
                                     <input 
                                       type="radio" 
                                       name={`class_q_${idx}`}
@@ -1315,26 +1536,26 @@ const App = () => {
                                       checked={classAnswers[idx] === opt}
                                       onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
                                       disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
-                                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                                      className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500 disabled:opacity-50"
                                     />
-                                    <span className="text-gray-700"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
+                                    <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
                                   </label>
                                 ))}
                               </div>
                             ) : (
-                              <div className="space-y-2 mt-3">
+                              <div className="space-y-3 mt-4">
                                 <textarea
                                   value={classAnswers[idx] || ''}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
                                   disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
-                                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                                  rows={4}
+                                  className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
+                                  rows={5}
                                   placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                                 />
                                 <div className="flex items-center gap-4">
                                   {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
-                                  <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
-                                    <ImageIcon className="w-4 h-4 mr-1" />
+                                  <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
+                                    <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                     Upload Work (Image)
                                     <input 
                                       type="file" 
@@ -1356,11 +1577,11 @@ const App = () => {
                                   )}
                                   {classImages[idx] && (
                                     <div className="relative mt-2">
-                                      <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
+                                      <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
                                       {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                                       <button 
                                         onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                        className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
                                       >
                                         <X className="w-3 h-3" />
                                       </button>
@@ -1372,40 +1593,45 @@ const App = () => {
                             )}
 
                             {classEvaluation[idx] && (
-                              <div className={`mt-3 p-3 rounded-md text-sm font-medium ${classEvaluation[idx].correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                              <div className={`mt-3 p-4 rounded-xl text-sm font-semibold flex items-center ${classEvaluation[idx].correct ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                {classEvaluation[idx].correct ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
                                 {classEvaluation[idx].correct ? 'Correct!' : 'Incorrect.'}
                               </div>
                             )}
 
-                            {(classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct)) && (
-                              <div className={`mt-3 p-4 border rounded-lg text-sm text-gray-800 ${classEvaluation[idx]?.correct ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-                                <h4 className={`font-bold mb-2 ${classEvaluation[idx]?.correct ? 'text-green-800' : 'text-blue-800'}`}>Correct Answer / Solution:</h4>
+                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct))) && (
+                              <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
+                                <h4 className={`font-bold mb-3 flex items-center ${classEvaluation[idx]?.correct ? 'text-emerald-800' : 'text-indigo-800'}`}>
+                                  <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
+                                </h4>
                                 {q.answer && (
-                                  <div className="mb-2"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                  <div className="mb-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
                                 {q.solution && (
-                                  <div><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
                                 {!q.answer && !q.solution && (
-                                  <div className="text-gray-500 italic">No official solution provided for this question.</div>
+                                  <div className="text-slate-500 italic">No official solution provided for this question.</div>
                                 )}
                               </div>
                             )}
 
                             {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
-                              <div className="mt-4 flex justify-end">
+                              <div className="mt-6 flex justify-end">
                                 <button 
                                   onClick={() => submitSingleClassQuestion(idx)}
                                   disabled={evaluatingClass[idx] || (!(classAnswers[idx] || '').trim() && !classImages[idx])}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   {evaluatingClass[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                  {evaluatingClass[idx] ? 'Evaluating...' : 'Submit'}
+                                  {evaluatingClass[idx] ? 'Evaluating...' : 'Submit Answer'}
                                 </button>
                               </div>
                             )}
                             
-                            <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
+                            <div className="mt-6 border-t border-slate-100 pt-4">
+                              <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
+                            </div>
                           </div>
                         );
                       }
@@ -1414,19 +1640,19 @@ const App = () => {
                   ) : (
                     <>
                       {/* Pagination Bar */}
-                      <div className="flex flex-wrap gap-2 mb-6">
+                      <div className="flex flex-wrap gap-2 mb-8">
                         {classQuestions.map((_, idx) => {
-                          let bgColor = "bg-gray-200 text-gray-700 hover:bg-gray-300";
-                          if (idx === classCurrentIndex) bgColor = "bg-blue-600 text-white ring-2 ring-blue-300 ring-offset-1";
-                          else if (classEvaluation[idx]?.correct) bgColor = "bg-green-500 text-white";
-                          else if (classEvaluation[idx] && !classEvaluation[idx].correct) bgColor = "bg-red-500 text-white";
-                          else if (classAnswers[idx] || classImages[idx]) bgColor = "bg-blue-400 text-white";
+                          let bgColor = "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200";
+                          if (idx === classCurrentIndex) bgColor = "bg-indigo-600 text-white shadow-md ring-4 ring-indigo-100 border-indigo-600";
+                          else if (classEvaluation[idx]?.correct) bgColor = "bg-emerald-500 text-white border-emerald-500 shadow-sm";
+                          else if (classEvaluation[idx] && !classEvaluation[idx].correct) bgColor = "bg-rose-500 text-white border-rose-500 shadow-sm";
+                          else if (classAnswers[idx] || classImages[idx]) bgColor = "bg-indigo-300 text-white border-indigo-300 shadow-sm";
                           
                           return (
                             <button
                               key={idx}
                               onClick={() => setClassCurrentIndex(idx)}
-                              className={`w-10 h-10 rounded-full font-semibold flex items-center justify-center transition-all ${bgColor}`}
+                              className={`w-11 h-11 rounded-xl font-bold flex items-center justify-center transition-all duration-200 ${bgColor}`}
                             >
                               {idx + 1}
                             </button>
@@ -1437,30 +1663,30 @@ const App = () => {
                       {classQuestions.map((q, idx) => {
                         if (idx !== classCurrentIndex) return null;
                         return (
-                        <div key={idx} className="space-y-3 bg-gray-50 p-5 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="font-medium text-gray-800"><span className="text-blue-600 mr-2">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>
+                        <div key={idx} className="space-y-4 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-start mb-4">
+                          <p className="font-medium text-slate-800 text-lg leading-relaxed"><span className="text-indigo-600 font-bold mr-3 bg-indigo-50 px-2 py-1 rounded-lg">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>
                           {q.solution && (
                             <button
                               onClick={() => setShowClassSolutions(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                              className="flex-shrink-0 ml-4 text-sm font-medium text-blue-600 hover:text-blue-800"
+                              className="flex-shrink-0 ml-4 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               {showClassSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
                             </button>
                           )}
                         </div>
-
+                        
                         {q.solution && showClassSolutions[idx] && (
-                          <div className="p-4 bg-blue-50/50 rounded border border-blue-100 text-sm text-gray-800 mb-4">
-                            <h4 className="font-bold text-blue-800 mb-2">Solution:</h4>
-                            <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} />
+                          <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-slate-800 mb-6">
+                            <h4 className="font-bold text-indigo-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                           </div>
                         )}
                         
                         {q.type === 'mcq' && q.options ? (
-                          <div className="space-y-2 mt-3">
+                          <div className="space-y-3 mt-4">
                             {q.options.map((opt, optIdx) => (
-                              <label key={optIdx} className="flex items-center space-x-3 p-3 rounded-md bg-white border border-gray-200 cursor-pointer hover:bg-blue-50 transition-colors">
+                              <label key={optIdx} className="flex items-center space-x-4 p-4 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 transition-all">
                                 <input 
                                   type="radio" 
                                   name={`class_q_${idx}`}
@@ -1468,26 +1694,26 @@ const App = () => {
                                   checked={classAnswers[idx] === opt}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
                                   disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                                  className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500 disabled:opacity-50"
                                 />
-                                <span className="text-gray-700"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
+                                <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
                               </label>
                             ))}
                           </div>
                         ) : (
-                          <div className="space-y-2 mt-3">
+                          <div className="space-y-3 mt-4">
                             <textarea
                               value={classAnswers[idx] || ''}
                               onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
                               disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
-                              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                              rows={4}
+                              className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
+                              rows={5}
                               placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
                               {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
-                              <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
-                                <ImageIcon className="w-4 h-4 mr-1" />
+                              <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
+                                <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                 Upload Work (Image)
                                 <input 
                                   type="file" 
@@ -1509,11 +1735,11 @@ const App = () => {
                               )}
                               {classImages[idx] && (
                                 <div className="relative mt-2">
-                                  <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
+                                  <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
                                   {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
                                   <button 
                                     onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                    className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -1524,42 +1750,47 @@ const App = () => {
                           </div>
                         )}
 
-                        {classEvaluation[idx] && (
-                          <div className={`mt-3 p-3 rounded-md text-sm font-medium ${classEvaluation[idx].correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                            {classEvaluation[idx].correct ? 'Correct!' : 'Incorrect.'}
-                          </div>
-                        )}
+                            {classEvaluation[idx] && (
+                              <div className={`mt-3 p-4 rounded-xl text-sm font-semibold flex items-center ${classEvaluation[idx].correct ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                                {classEvaluation[idx].correct ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
+                                {classEvaluation[idx].correct ? 'Correct!' : 'Incorrect.'}
+                              </div>
+                            )}
 
-                        {(classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct)) && (
-                          <div className={`mt-3 p-4 border rounded-lg text-sm text-gray-800 ${classEvaluation[idx]?.correct ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-                            <h4 className={`font-bold mb-2 ${classEvaluation[idx]?.correct ? 'text-green-800' : 'text-blue-800'}`}>Correct Answer / Solution:</h4>
-                            {q.answer && (
-                              <div className="mb-2"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct))) && (
+                              <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
+                                <h4 className={`font-bold mb-3 flex items-center ${classEvaluation[idx]?.correct ? 'text-emerald-800' : 'text-indigo-800'}`}>
+                                  <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
+                                </h4>
+                                {q.answer && (
+                                  <div className="mb-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                )}
+                                {q.solution && (
+                                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                )}
+                                {!q.answer && !q.solution && (
+                                  <div className="text-slate-500 italic">No official solution provided for this question.</div>
+                                )}
+                              </div>
                             )}
-                            {q.solution && (
-                              <div><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
-                            )}
-                            {!q.answer && !q.solution && (
-                              <div className="text-gray-500 italic">No official solution provided for this question.</div>
-                            )}
-                          </div>
-                        )}
 
                             {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
-                              <div className="mt-4 flex justify-end">
+                              <div className="mt-6 flex justify-end">
                                 <button 
                                   onClick={() => submitSingleClassQuestion(idx)}
                                   disabled={evaluatingClass[idx] || (!(classAnswers[idx] || '').trim() && !classImages[idx])}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   {evaluatingClass[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                                  {evaluatingClass[idx] ? 'Evaluating...' : 'Submit'}
+                                  {evaluatingClass[idx] ? 'Evaluating...' : 'Submit Answer'}
                                 </button>
                               </div>
                             )}
-                        
-                        <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
-                      </div>
+                            
+                            <div className="mt-6 border-t border-slate-100 pt-4">
+                              <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
+                            </div>
+                          </div>
                       );
                     })}
                     </>
@@ -1568,17 +1799,17 @@ const App = () => {
               )}
             </div>
             {(classQuestions.length > 0 || classContentFlow.length > 0) && (
-              <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 sm:rounded-b-xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
+              <div className="p-5 sm:p-8 border-t border-slate-100 bg-slate-50/80 sm:rounded-b-3xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
                   {(!classContentFlow || classContentFlow.length === 0) && classQuestions.length > 0 && (
-                    <div className="text-sm text-gray-500 order-2 sm:order-1">
+                    <div className="text-sm font-medium text-slate-500 order-2 sm:order-1 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
                       {classQuestions.filter((_, i) => classEvaluation[i]?.correct || classAttempts[i] >= 2).length} / {classQuestions.length} completed
                     </div>
                   )}
-                  <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-2">
+                  <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-3">
                     {(!classContentFlow || classContentFlow.length === 0) && classQuestions.length > 0 && classCurrentIndex > 0 && (
                       <button
                         onClick={() => setClassCurrentIndex(prev => prev - 1)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-4 rounded-lg transition-colors"
+                        className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-slate-200 shadow-sm transition-all"
                       >
                         Previous
                       </button>
@@ -1586,34 +1817,41 @@ const App = () => {
                     {(!classContentFlow || classContentFlow.length === 0) && classQuestions.length > 0 && classCurrentIndex < classQuestions.length - 1 && (
                       <button
                         onClick={() => setClassCurrentIndex(prev => prev + 1)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-4 rounded-lg transition-colors"
+                        className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-slate-200 shadow-sm transition-all"
                       >
                         Next
                       </button>
                     )}
                     {classQuestions.length === 0 ? (
-                      <button 
-                        onClick={async () => {
-                          if (activeClassTask.class_status !== 'completed') {
+                      isParent || activeClassTask.class_status === 'completed' ? (
+                        <button 
+                          onClick={() => setActiveClassTask(null)}
+                          className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all flex items-center justify-center w-full sm:w-auto"
+                        >
+                          Close
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={async () => {
                             await toggleStatus(activeClassTask.id, 'class_status', 'pending');
-                          }
-                          setActiveClassTask(null);
-                        }}
-                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 sm:py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
-                      >
-                        <CheckCircle2 className="w-5 h-5 mr-2" /> Mark as Read & Close
-                      </button>
+                            setActiveClassTask(null);
+                          }}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center w-full sm:w-auto"
+                        >
+                          <CheckCircle2 className="w-5 h-5 mr-2" /> Mark as Read & Close
+                        </button>
+                      )
                     ) : classQuestions.every((_, idx) => classEvaluation[idx]?.correct || classAttempts[idx] >= 2) || activeClassTask.class_status === 'completed' ? (
                       <button 
                         onClick={() => setActiveClassTask(null)}
-                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 sm:py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center w-full sm:w-auto"
                       >
                         <CheckCircle2 className="w-5 h-5 mr-2" /> All Done! (Close)
                       </button>
                     ) : (
                       <button 
                         onClick={() => setActiveClassTask(null)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all flex items-center justify-center w-full sm:w-auto"
                       >
                         Close
                       </button>
@@ -1631,40 +1869,43 @@ const App = () => {
         const isTaskCompleted = activeHomeworkTask.homework_status === 'completed';
 
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-0 sm:p-4 overflow-y-auto">
-          <div className="bg-white sm:rounded-xl shadow-xl w-full h-full sm:h-auto max-w-3xl sm:max-h-[90vh] flex flex-col relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white sm:rounded-3xl shadow-2xl w-full h-full sm:h-auto max-w-4xl sm:max-h-[90vh] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-500 to-orange-500"></div>
             <button 
               onClick={() => setActiveHomeworkTask(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors z-10"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
-            <div className="p-4 sm:p-6 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900">Exercises</h2>
-              <p className="text-sm text-gray-500 mt-1">Complete exercises extracted from the PDF.</p>
+            <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-2xl font-bold text-slate-900 flex items-center">
+                <Pencil className="w-6 h-6 mr-3 text-rose-500" />
+                Exercises
+              </h2>
             </div>
-            <div className="p-4 sm:p-6 overflow-y-auto flex-grow space-y-8">
+            <div className="p-6 sm:p-8 overflow-y-auto flex-grow space-y-8 bg-slate-50/30">
               {homeworkLoading && homeworkQuestions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
-                  <p>Loading content...</p>
+                <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                  <Loader2 className="w-10 h-10 animate-spin mb-4 text-rose-500" />
+                  <p className="text-lg font-medium">Loading exercises...</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                       {/* Pagination Bar */}
-                      <div className="flex flex-wrap gap-2 mb-6">
+                      <div className="flex flex-wrap gap-2 mb-8">
                         {homeworkQuestions.map((_, idx) => {
-                          let bgColor = "bg-gray-200 text-gray-700 hover:bg-gray-300";
-                          if (idx === homeworkCurrentIndex) bgColor = "bg-blue-600 text-white ring-2 ring-blue-300 ring-offset-1";
-                          else if (homeworkEvaluations[idx]?.correct) bgColor = "bg-green-500 text-white";
-                          else if (homeworkEvaluations[idx] && !homeworkEvaluations[idx].correct) bgColor = "bg-red-500 text-white";
-                          else if (homeworkAnswers[idx] || homeworkImages[idx]) bgColor = "bg-blue-400 text-white";
+                          let bgColor = "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200";
+                          if (idx === homeworkCurrentIndex) bgColor = "bg-rose-500 text-white shadow-md ring-4 ring-rose-100 border-rose-500";
+                          else if (homeworkEvaluations[idx]?.correct) bgColor = "bg-emerald-500 text-white border-emerald-500 shadow-sm";
+                          else if (homeworkEvaluations[idx] && !homeworkEvaluations[idx].correct) bgColor = "bg-rose-500 text-white border-rose-500 shadow-sm";
+                          else if (homeworkAnswers[idx] || homeworkImages[idx]) bgColor = "bg-rose-300 text-white border-rose-300 shadow-sm";
                           
                           return (
                             <button
                               key={idx}
                               onClick={() => setHomeworkCurrentIndex(idx)}
-                              className={`w-10 h-10 rounded-full font-semibold flex items-center justify-center transition-all ${bgColor}`}
+                              className={`w-11 h-11 rounded-xl font-bold flex items-center justify-center transition-all duration-200 ${bgColor}`}
                             >
                               {idx + 1}
                             </button>
@@ -1675,30 +1916,35 @@ const App = () => {
                       {homeworkQuestions.map((q, idx) => {
                         if (idx !== homeworkCurrentIndex) return null;
                         return (
-                        <div key={idx} className="space-y-3 bg-gray-50 p-5 rounded-lg border border-gray-100 shadow-sm">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="font-medium text-gray-800"><span className="text-blue-600 mr-2">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></p>
-                          {q.solution && (
-                            <button
-                              onClick={() => setShowHomeworkSolutions(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                              className="flex-shrink-0 ml-4 text-sm font-medium text-blue-600 hover:text-blue-800"
-                            >
-                              {showHomeworkSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
-                            </button>
-                          )}
-                        </div>
-
-                        {q.solution && showHomeworkSolutions[idx] && (
-                          <div className="p-4 bg-blue-50/50 rounded border border-blue-100 text-sm text-gray-800 mb-4">
-                            <h4 className="font-bold text-blue-800 mb-2">Solution:</h4>
-                            <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} />
+                        <div key={idx} className="space-y-4 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="flex justify-between items-start mb-4">
+                          <p className="font-medium text-slate-800 text-lg leading-relaxed"><span className="text-rose-600 font-bold mr-3 bg-rose-50 px-2 py-1 rounded-lg">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></p>
+                            {isParent && (q.solution || q.answer) && (
+                              <button
+                                onClick={() => setShowHomeworkSolutions(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                                className="flex-shrink-0 ml-4 text-sm font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                {showHomeworkSolutions[idx] ? 'Hide Solution' : 'Show Solution'}
+                              </button>
+                            )}
                           </div>
-                        )}
+                          
+                          {isParent && (q.solution || q.answer) && showHomeworkSolutions[idx] && (
+                            <div className="p-5 bg-rose-50/50 rounded-xl border border-rose-100 text-sm text-slate-800 mb-6">
+                              <h4 className="font-bold text-rose-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
+                              {q.answer && (
+                                <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                              )}
+                              {q.solution && (
+                                <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                              )}
+                            </div>
+                          )}
                         
                         {q.type === 'mcq' && q.options ? (
-                          <div className="space-y-2 mt-3">
+                          <div className="space-y-3 mt-4">
                             {q.options.map((opt, optIdx) => (
-                              <label key={optIdx} className="flex items-center space-x-3 p-3 rounded-md bg-white border border-gray-200 cursor-pointer hover:bg-blue-50 transition-colors">
+                              <label key={optIdx} className="flex items-center space-x-4 p-4 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-rose-50 hover:border-rose-200 transition-all">
                                 <input 
                                   type="radio" 
                                   name={`homework_q_${idx}`}
@@ -1706,26 +1952,26 @@ const App = () => {
                                   checked={homeworkAnswers[idx] === opt}
                                   onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
                                   disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                                  className="w-5 h-5 text-rose-600 border-slate-300 focus:ring-rose-500 disabled:opacity-50"
                                 />
-                                <span className="text-gray-700"><MathText text={opt} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></span>
+                                <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></span>
                               </label>
                             ))}
                           </div>
                         ) : (
-                          <div className="space-y-2 mt-3">
+                          <div className="space-y-3 mt-4">
                             <textarea
                               value={homeworkAnswers[idx] || ''}
                               onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
                               disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
-                              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-                              rows={4}
+                              className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
+                              rows={5}
                               placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
                               {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
-                              <label className="cursor-pointer flex items-center text-sm font-medium text-blue-600 hover:text-blue-800">
-                                <ImageIcon className="w-4 h-4 mr-1" />
+                              <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
+                                <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                 Upload Work (Image)
                                 <input 
                                   type="file" 
@@ -1747,11 +1993,11 @@ const App = () => {
                               )}
                               {homeworkImages[idx] && (
                                 <div className="relative mt-2">
-                                  <img src={`data:image/jpeg;base64,${homeworkImages[idx]}`} alt="uploaded" className="h-16 rounded border border-gray-200" />
+                                  <img src={`data:image/jpeg;base64,${homeworkImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
                                   {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
                                   <button 
                                     onClick={() => setHomeworkImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                                    className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -1763,92 +2009,95 @@ const App = () => {
                         )}
 
                         {homeworkEvaluations[idx] && (
-                          <div className={`mt-3 p-3 rounded-md text-sm font-medium ${homeworkEvaluations[idx].correct ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                          <div className={`mt-3 p-4 rounded-xl text-sm font-semibold flex items-center ${homeworkEvaluations[idx].correct ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                            {homeworkEvaluations[idx].correct ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
                             {homeworkEvaluations[idx].correct ? 'Correct!' : 'Incorrect.'}
                           </div>
                         )}
 
-                        {(homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 2 && !homeworkEvaluations[idx]?.correct)) && (
-                          <div className={`mt-3 p-4 border rounded-lg text-sm text-gray-800 ${homeworkEvaluations[idx]?.correct ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
-                            <h4 className={`font-bold mb-2 ${homeworkEvaluations[idx]?.correct ? 'text-green-800' : 'text-blue-800'}`}>Correct Answer / Solution:</h4>
+                          {(!isParent && (homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 2 && !homeworkEvaluations[idx]?.correct))) && (
+                          <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-300 ${homeworkEvaluations[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
+                            <h4 className={`font-bold mb-3 flex items-center ${homeworkEvaluations[idx]?.correct ? 'text-emerald-800' : 'text-rose-800'}`}>
+                              <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
+                            </h4>
                             {q.answer && (
-                              <div className="mb-2"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                              <div className="mb-3 bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-inner"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
                             )}
                             {q.solution && (
-                              <div><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                              <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-inner"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
                             )}
                             {!q.answer && !q.solution && (
-                              <div className="text-gray-500 italic">No official solution provided for this question.</div>
+                              <div className="text-slate-500 italic">No official solution provided for this question.</div>
                             )}
                           </div>
                         )}
 
                         {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
-                          <div className="mt-4 flex justify-end">
+                          <div className="mt-6 flex justify-end">
                             <button 
                               onClick={() => submitSingleHomeworkQuestion(idx)}
                               disabled={evaluatingHomework[idx] || (!(homeworkAnswers[idx] || '').trim() && !homeworkImages[idx])}
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {evaluatingHomework[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                              {evaluatingHomework[idx] ? 'Evaluating...' : 'Submit'}
+                              {evaluatingHomework[idx] ? 'Evaluating...' : 'Submit Answer'}
                             </button>
                           </div>
                         )}
                         
-                        <ProblemChat key={`homework-chat-${idx}`} question={q} pdfPath={activeHomeworkTask.pdf_materials?.[0]} isParent={isParent} />
+                        <div className="mt-6 border-t border-slate-100 pt-4">
+                          <ProblemChat key={`hw-chat-${idx}`} question={q} pdfPath={activeHomeworkTask.pdf_materials?.[0]} isParent={isParent} />
+                        </div>
                       </div>
-                      );
-                    })}
-                </div>
-              )}
+                    );
+                  })}
             </div>
-            {homeworkQuestions.length > 0 && (
-              <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 sm:rounded-b-xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
-                  {homeworkQuestions.length > 0 && (
-                    <div className="text-sm text-gray-500 order-2 sm:order-1">
-                      {homeworkQuestions.filter((_, i) => homeworkEvaluations[i]?.correct || homeworkAttempts[i] >= 2).length} / {homeworkQuestions.length} completed
-                    </div>
-                  )}
-                  <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-2">
-                    {homeworkQuestions.length > 0 && homeworkCurrentIndex > 0 && (
-                      <button
-                        onClick={() => setHomeworkCurrentIndex(prev => prev - 1)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-4 rounded-lg transition-colors"
-                      >
-                        Previous
-                      </button>
-                    )}
-                    {homeworkQuestions.length > 0 && homeworkCurrentIndex < homeworkQuestions.length - 1 && (
-                      <button
-                        onClick={() => setHomeworkCurrentIndex(prev => prev + 1)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-4 rounded-lg transition-colors"
-                      >
-                        Next
-                      </button>
-                    )}
-                    {homeworkQuestions.every((_, idx) => homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) || activeHomeworkTask.homework_status === 'completed' ? (
-                      <button 
-                        onClick={() => setActiveHomeworkTask(null)}
-                        className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 sm:py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
-                      >
-                        <CheckCircle2 className="w-5 h-5 mr-2" /> All Done! (Close)
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => setActiveHomeworkTask(null)}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 sm:py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center w-full sm:w-auto"
-                      >
-                        Close
-                      </button>
-                    )}
-                  </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-        );
-      })()}
+        {homeworkQuestions.length > 0 && (
+          <div className="p-5 sm:p-8 border-t border-slate-100 bg-slate-50/80 sm:rounded-b-3xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
+              <div className="text-sm font-medium text-slate-500 order-2 sm:order-1 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                {homeworkQuestions.filter((_, i) => homeworkEvaluations[i]?.correct || homeworkAttempts[i] >= 2).length} / {homeworkQuestions.length} completed
+              </div>
+              <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-3">
+                {homeworkCurrentIndex > 0 && (
+                  <button
+                    onClick={() => setHomeworkCurrentIndex(prev => prev - 1)}
+                    className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-slate-200 shadow-sm transition-all"
+                  >
+                    Previous
+                  </button>
+                )}
+                {homeworkCurrentIndex < homeworkQuestions.length - 1 && (
+                  <button
+                    onClick={() => setHomeworkCurrentIndex(prev => prev + 1)}
+                    className="bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 sm:py-2.5 px-5 rounded-xl border border-slate-200 shadow-sm transition-all"
+                  >
+                    Next
+                  </button>
+                )}
+                {homeworkQuestions.every((_, idx) => homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) || activeHomeworkTask.homework_status === 'completed' ? (
+                  <button 
+                    onClick={() => setActiveHomeworkTask(null)}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center w-full sm:w-auto"
+                  >
+                    <CheckCircle2 className="w-5 h-5 mr-2" /> All Done! (Close)
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setActiveHomeworkTask(null)}
+                    className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all flex items-center justify-center w-full sm:w-auto"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+          </div>
+        )}
+      </div>
+    </div>
+    );
+  })()}
     </div>
   );
 }
