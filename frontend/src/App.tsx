@@ -121,7 +121,11 @@ const MathText = ({ text, pdfPath }: { text: string, pdfPath?: string }) => {
   // Remove \color[rgb]{...} which appears in some raw math text
   const cleanText = text.replace(/\\color\[rgb\]\{[^}]+\}/g, '')
     // Fix nested overarc/overparen like \overarc{$MN$} -> \stackrel{\frown}{MN}
-    .replace(/\\(?:overarc|overparen|wideparen)\{\$?([^{}$]+)\$?\}/g, '\\stackrel{\\frown}{$1}');
+    .replace(/\\(?:overarc|overparen|wideparen)\{\$?([^{}$]+)\$?\}/g, '\\stackrel{\\frown}{$1}')
+    // Remove □ character
+    .replace(/□/g, '')
+    // Remove "Solution for Problem X.X: " prefix
+    .replace(/^Solution(?: for Problem [\d.]+)?:\s*/i, '');
   
   const iconboxParts = parseIconboxes(cleanText);
 
@@ -1612,7 +1616,7 @@ const App = () => {
                                   <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
                                 {q.solution && (
-                                  <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                  <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
                               </div>
                             )}
@@ -1699,9 +1703,9 @@ const App = () => {
                                 {q.answer && (
                                   <div className="mb-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
-                                {q.solution && (
-                                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
-                                )}
+                                  {q.solution && (
+                                    <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                  )}
                                 {!q.answer && !q.solution && (
                                   <div className="text-slate-500 italic">No official solution provided for this question.</div>
                                 )}
@@ -1768,12 +1772,12 @@ const App = () => {
                           )}
                         </div>
                         
-                        {q.solution && showClassSolutions[idx] && (
-                          <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-slate-800 mb-6">
-                            <h4 className="font-bold text-indigo-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
-                          </div>
-                        )}
+                          {q.solution && showClassSolutions[idx] && (
+                              <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-slate-800 mb-6">
+                                <h4 className="font-bold text-indigo-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
+                                <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                              </div>
+                            )}
                         
                         {q.type === 'mcq' && q.options ? (
                           <div className="space-y-3 mt-4">
@@ -1857,9 +1861,9 @@ const App = () => {
                                 {q.answer && (
                                   <div className="mb-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
                                 )}
-                                {q.solution && (
-                                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
-                                )}
+                                  {q.solution && (
+                                    <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
+                                  )}
                                 {!q.answer && !q.solution && (
                                   <div className="text-slate-500 italic">No official solution provided for this question.</div>
                                 )}
@@ -2021,17 +2025,17 @@ const App = () => {
                             )}
                           </div>
                           
-                          {isParent && (q.solution || q.answer) && showHomeworkSolutions[idx] && (
-                            <div className="p-5 bg-rose-50/50 rounded-xl border border-rose-100 text-sm text-slate-800 mb-6">
-                              <h4 className="font-bold text-rose-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
-                              {q.answer && (
-                                <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
-                              )}
-                              {q.solution && (
-                                <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
-                              )}
-                            </div>
-                          )}
+                            {isParent && (q.solution || q.answer) && showHomeworkSolutions[idx] && (
+                              <div className="p-5 bg-rose-50/50 rounded-xl border border-rose-100 text-sm text-slate-800 mb-6">
+                                <h4 className="font-bold text-rose-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
+                                {q.answer && (
+                                  <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                                )}
+                                {q.solution && (
+                                  <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                                )}
+                              </div>
+                            )}
                         
                         {q.type === 'mcq' && q.options ? (
                           <div className="space-y-3 mt-4">
@@ -2108,16 +2112,16 @@ const App = () => {
                         )}
 
                           {(!isParent && (homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 2 && !homeworkEvaluations[idx]?.correct))) && (
-                          <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-300 ${homeworkEvaluations[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
+                            <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${homeworkEvaluations[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
                             <h4 className={`font-bold mb-3 flex items-center ${homeworkEvaluations[idx]?.correct ? 'text-emerald-800' : 'text-rose-800'}`}>
                               <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
                             </h4>
-                            {q.answer && (
-                              <div className="mb-3 bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-inner"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
-                            )}
-                            {q.solution && (
-                              <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 shadow-inner"><strong>Solution:</strong> <MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
-                            )}
+                              {q.answer && (
+                                <div className="mb-3 bg-white p-4 rounded-lg shadow-sm border border-slate-100"><strong>Answer:</strong> <MathText text={q.answer} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                              )}
+                                {q.solution && (
+                                  <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></div>
+                                )}
                             {!q.answer && !q.solution && (
                               <div className="text-slate-500 italic">No official solution provided for this question.</div>
                             )}
