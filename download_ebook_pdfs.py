@@ -85,13 +85,13 @@ function applyMarkdownFormatting(clone) {
 """
 
 # Target directory page URL
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
+DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-counting-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/precalculus-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/calculus-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol1-ebook/c0toc"
-DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
 
 LINK_SELECTOR = "a" 
 STATE_FILE = "auth_state.json" # File to save the login state
@@ -293,12 +293,16 @@ def extract_problems_to_json(page, pdf_filename, url, output_dir):
                     if (nextEl && nextEl.classList.contains('ebk-sb-example-solution')) {{
                         let solText = "";
                         let curr = nextEl;
-                        while (curr && (curr.classList.contains('ebk-sb-example-solution') || 
-                                       curr.classList.contains('ebk-sb-image') || 
-                                       curr.classList.contains('ebk-sb-par-marker-container') ||
-                                       curr.classList.contains('ebk-clear') ||
-                                       curr.classList.contains('ebk-sb-iconbox'))) {{
-                            if (curr.nodeType === 1 && !curr.classList.contains('ebk-clear')) {{
+                        while (curr) {{
+                            if (curr.classList.contains('ebk-sb-example') ||
+                                curr.classList.contains('ebk-sb-exercises-container') ||
+                                curr.classList.contains('ebk-sb-header') ||
+                                curr.classList.contains('ebk-sb-review-container') ||
+                                curr.classList.contains('ebk-sb-challenge-container')) {{
+                                break;
+                            }}
+
+                            if (curr.nodeType === 1 && !curr.classList.contains('ebk-clear') && !curr.classList.contains('ebk-sb-label-marker') && !curr.classList.contains('ebk-sb-block-line')) {{
                                 let currData = processNode(curr);
                                 if (currData && currData.text) {{
                                     solText += (solText ? "\\n\\n" : "") + currData.text;
@@ -308,9 +312,6 @@ def extract_problems_to_json(page, pdf_filename, url, output_dir):
                                 }}
                             }}
                             curr = curr.nextElementSibling;
-                            if (curr && (curr.classList.contains('ebk-sb-example') || curr.classList.contains('ebk-sb-exercises-container') || curr.classList.contains('ebk-sb-header'))) {{
-                                break;
-                            }}
                         }}
                         item.solution = solText;
                     }}
@@ -776,14 +777,14 @@ def cleanup_page(page):
     }""")
 
 def main():
-    #output_dir = "output_pdfs_intro-geometry-ebook"
+    output_dir = "output_pdfs_intro-geometry-ebook"
     #output_dir = "output_pdfs_intro-counting-ebook"
     #output_dir = "output_pdfs_intro-number-theory-ebook"
     #output_dir = "output_pdfs_intermediate-counting-ebook"
     #output_dir = "output_pdfs_precalculus-ebook"
     #output_dir = "output_pdfs_calculus-ebook"
     #output_dir = "output_pdfs_aops-vol1-ebook"
-    output_dir = "output_pdfs_aops-vol2-ebook"
+    #output_dir = "output_pdfs_aops-vol2-ebook"
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -895,22 +896,13 @@ def main():
                 # Extract the full content flow for the reader
                 extract_content_flow_to_json(page, filename, link, output_dir)
                 
-                # Reset webpage completely after getting the data so it looks perfectly clean in HTML and PDF
-                click_reset_buttons(page)
-                page.reload(wait_until="networkidle")
-                page.wait_for_timeout(3000)
-                try:
-                    page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                except:
-                    pass
-                
-                # Save offline HTML
+                # Save offline HTML (with solutions expanded)
                 save_offline_html(page, html_filename)
                 
                 # Hide redundant headers and footers
                 cleanup_page(page)
                 
-                # Export to PDF
+                # Export to PDF (with solutions expanded)
                 # print_background=True preserves web page background colors and images
                 # format="A4" sets the paper size
                 page.pdf(
@@ -920,6 +912,15 @@ def main():
                     margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"}
                 )
                 print(f"  -> Saved PDF to {filename}")
+                
+                # Reset webpage completely after saving everything to prepare for the next page
+                click_reset_buttons(page)
+                page.reload(wait_until="networkidle")
+                page.wait_for_timeout(3000)
+                try:
+                    page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
+                except:
+                    pass
             except Exception as e:
                 print(f"  -> Failed to process {link}: {e}")
                 failed_links.append(link)
@@ -970,16 +971,7 @@ def main():
                     # Extract the full content flow for the reader
                     extract_content_flow_to_json(page, filename, link, output_dir)
                     
-                    # Reset webpage completely after getting the data so it looks perfectly clean in HTML and PDF
-                    click_reset_buttons(page)
-                    page.reload(wait_until="networkidle")
-                    page.wait_for_timeout(3000)
-                    try:
-                        page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                    except:
-                        pass
-                    
-                    # Save offline HTML
+                    # Save offline HTML (with solutions expanded)
                     save_offline_html(page, html_filename)
                     
                     # Hide redundant headers and footers
@@ -992,6 +984,15 @@ def main():
                         margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"}
                     )
                     print(f"  -> Saved PDF to {filename}")
+                    
+                    # Reset webpage completely after saving everything to prepare for the next page
+                    click_reset_buttons(page)
+                    page.reload(wait_until="networkidle")
+                    page.wait_for_timeout(3000)
+                    try:
+                        page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
+                    except:
+                        pass
                 except Exception as e:
                     print(f"  -> Retry attempt {attempt} failed for {link}: {e}")
                     current_failed.append(link)
