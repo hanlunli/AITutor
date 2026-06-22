@@ -124,8 +124,6 @@ const MathText = ({ text, pdfPath }: { text: string, pdfPath?: string }) => {
     .replace(/\\(?:overarc|overparen|wideparen)\{\$?([^{}$]+)\$?\}/g, '\\stackrel{\\frown}{$1}')
     // Remove □ character
     .replace(/□/g, '')
-    // Remove "Solution for Problem X.X: " prefix
-    .replace(/^Solution(?: for Problem [\d.]+)?:\s*/i, '');
   
   const iconboxParts = parseIconboxes(cleanText);
 

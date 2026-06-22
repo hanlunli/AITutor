@@ -5,6 +5,27 @@ import json
 import urllib.parse
 import hashlib
 
+# Target directory page URL
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-counting-ebook/c0toc"
+DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/precalculus-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/calculus-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol1-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
+
+#output_dir = "output_pdfs_intro-geometry-ebook"
+#output_dir = "output_pdfs_intro-counting-ebook"
+output_dir = "output_pdfs_intro-number-theory-ebook"
+#output_dir = "output_pdfs_intermediate-counting-ebook"
+#output_dir = "output_pdfs_precalculus-ebook"
+#output_dir = "output_pdfs_calculus-ebook"
+#output_dir = "output_pdfs_aops-vol1-ebook"
+#output_dir = "output_pdfs_aops-vol2-ebook"
+
+# File to save the login state
+STATE_FILE = "auth_state.json"
+
 # Shared Javascript helpers for DOM manipulation
 JS_HELPERS = """
 function applyMarkdownFormatting(clone) {
@@ -58,6 +79,61 @@ function applyMarkdownFormatting(clone) {
         el.parentNode.replaceChild(textNode, el);
     });
     
+    // Convert tables to markdown, but preserve rowspan by repeating the value
+    clone.querySelectorAll('table').forEach(table => {
+        let markdown = '\\n\\n';
+        let rows = Array.from(table.querySelectorAll('tr'));
+        if (rows.length === 0) return;
+        
+        let grid = [];
+        for (let i = 0; i < rows.length; i++) {
+            grid.push([]);
+        }
+        
+        for (let r = 0; r < rows.length; r++) {
+            let row = rows[r];
+            let cells = Array.from(row.querySelectorAll('th, td'));
+            let c = 0;
+            
+            for (let cell of cells) {
+                while (grid[r][c] !== undefined) {
+                    c++;
+                }
+                
+                let rowspan = parseInt(cell.getAttribute('rowspan')) || 1;
+                let colspan = parseInt(cell.getAttribute('colspan')) || 1;
+                let text = cell.innerText.trim().replace(/\\n/g, ' ');
+                
+                for (let i = 0; i < rowspan; i++) {
+                    for (let j = 0; j < colspan; j++) {
+                        if (r + i < rows.length) {
+                            grid[r + i][c + j] = text;
+                        }
+                    }
+                }
+                c += colspan;
+            }
+        }
+        
+        if (grid.length > 0) {
+            let numCols = 0;
+            for (let r = 0; r < grid.length; r++) {
+                if (grid[r].length > numCols) numCols = grid[r].length;
+            }
+            
+            for (let r = 0; r < grid.length; r++) {
+                while (grid[r].length < numCols) {
+                    grid[r].push('');
+                }
+                let rowText = '| ' + grid[r].join(' | ') + ' |';
+                markdown += rowText + '\\n';
+            }
+        }
+        
+        let textNode = document.createTextNode(markdown + '\\n');
+        table.parentNode.replaceChild(textNode, table);
+    });
+    
     // Format nested iconboxes
     clone.querySelectorAll('.ebk-sb-iconbox').forEach(ib => {
         let iconType = 'default';
@@ -83,18 +159,6 @@ function applyMarkdownFormatting(clone) {
     });
 }
 """
-
-# Target directory page URL
-DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-counting-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/precalculus-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/calculus-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol1-ebook/c0toc"
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
-
-LINK_SELECTOR = "a" 
-STATE_FILE = "auth_state.json" # File to save the login state
 
 def sanitize_filename(url):
     """Create a safe filename from a URL."""
@@ -290,7 +354,7 @@ def extract_problems_to_json(page, pdf_filename, url, output_dir):
                     
                     // Extract solution if present (next sibling usually for Problems)
                     let nextEl = el.nextElementSibling;
-                    if (nextEl && nextEl.classList.contains('ebk-sb-example-solution')) {{
+                    if (nextEl) {{
                         let solText = "";
                         let curr = nextEl;
                         while (curr) {{
@@ -472,7 +536,7 @@ def extract_content_flow_to_json(page, pdf_filename, url, output_dir, container_
                 }}
                 
                 if (node.classList.contains('ebk-sb-example')) {{
-                    in_solution_tail = false; // Reset
+                    in_solution_tail = true; // Set to true to ignore all content until next problem/header
                     let numEl = node.querySelector('.ebk-sb--number, .ebk-sb-preview-number, .ebk-sb-example-number');
                     let number = numEl ? numEl.innerText.trim() : '';
                     items.push({{ type: 'problem_box', number: number }});
@@ -481,7 +545,7 @@ def extract_content_flow_to_json(page, pdf_filename, url, output_dir, container_
                     in_solution_tail = true;
                     return; // Handled by widget
                 }} else if (in_solution_tail) {{
-                    if (node.classList.contains('ebk-sb-header') || node.classList.contains('ebk-sb-exercises-container')) {{
+                    if (node.classList.contains('ebk-sb-header') || node.classList.contains('ebk-sb-exercises-container') || node.classList.contains('ebk-sb-review-container') || node.classList.contains('ebk-sb-challenge-container') || node.classList.contains('ebk-section-body-footer')) {{
                         in_solution_tail = false;
                     }} else if (node.classList.contains('ebk-sb-par-marker-container') || node.classList.contains('ebk-sb-image') || node.classList.contains('ebk-sb-iconbox')) {{
                         return; // Handled by widget solution tail
@@ -580,81 +644,60 @@ def extract_content_flow_to_json(page, pdf_filename, url, output_dir, container_
         err_msg = str(e).encode('ascii', 'ignore').decode('ascii')
         print(f"  -> Error extracting content flow to JSON: {err_msg}")
 
-def save_offline_html(page, html_filename):
-    """Save a reliable, clean HTML backup of the page with inline Base64 resources."""
-    html_data = page.evaluate("""async () => {
+def save_offline_html(page, html_filename, output_dir):
+    """Save a clean HTML backup of the page, using local image paths."""
+    
+    # We need to pass the images directory name to JS
+    images_dir_name = "images"
+    
+    html_data = page.evaluate(f"""() => {{
         let docClone = document.documentElement.cloneNode(true);
         
-        docClone.querySelectorAll('script').forEach(el => el.remove());
         docClone.querySelectorAll('base').forEach(el => el.remove());
         
-        // Helper to fetch and encode base64
-        async function fetchAsBase64(url) {
-            try {
-                let res = await fetch(url);
-                if (!res.ok) return null;
-                let blob = await res.blob();
-                return await new Promise((resolve) => {
-                    let reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.readAsDataURL(blob);
-                });
-            } catch (e) { return null; }
-        }
+        // Helper to get filename from URL
+        function getFilenameFromUrl(url) {{
+            if (!url) return null;
+            if (url.startsWith('//')) url = 'https:' + url;
+            // Generate the same safe filename as the python script
+            // Note: Since we can't easily do MD5 in browser JS synchronously without external libs,
+            // we will let Python handle the actual string replacement for image paths after we get the HTML.
+            return url; 
+        }}
         
-        // Inline all images
-        let imgs = docClone.querySelectorAll('img');
-        for (let i = 0; i < imgs.length; i++) {
-            let img = imgs[i];
-            let src = img.getAttribute('src');
-            if (src && !src.startsWith('data:')) {
-                if (src.startsWith('//')) src = 'https:' + src;
-                else if (src.startsWith('/')) src = 'https://artofproblemsolving.com' + src;
-                let b64 = await fetchAsBase64(src);
-                if (b64) img.setAttribute('src', b64);
-            }
-        }
-        
-        // Convert SVG <object> to <img> so they render instantly offline
-        let objs = docClone.querySelectorAll('object[type="image/svg+xml"]');
-        for (let i = 0; i < objs.length; i++) {
-            let obj = objs[i];
-            let data = obj.getAttribute('data');
-            if (data && !data.startsWith('data:')) {
-                if (data.startsWith('//')) data = 'https:' + data;
-                else if (data.startsWith('/')) data = 'https://artofproblemsolving.com' + data;
-                let b64 = await fetchAsBase64(data);
-                if (b64) {
-                    let img = document.createElement('img');
-                    img.setAttribute('src', b64);
-                    img.className = obj.className;
-                    img.style.cssText = obj.style.cssText;
-                    obj.parentNode.replaceChild(img, obj);
-                }
-            }
-        }
-        
-        // Inline all CSS
-        let links = docClone.querySelectorAll('link[rel="stylesheet"]');
-        for (let i = 0; i < links.length; i++) {
-            let link = links[i];
-            let href = link.getAttribute('href');
-            if (href && !href.startsWith('data:')) {
-                if (href.startsWith('//')) href = 'https:' + href;
-                else if (href.startsWith('/')) href = 'https://artofproblemsolving.com' + href;
-                try {
-                    let res = await fetch(href);
-                    if (res.ok) {
-                        let text = await res.text();
-                        let style = document.createElement('style');
-                        style.innerHTML = text;
-                        link.parentNode.replaceChild(style, link);
-                    }
-                } catch(e) {}
-            }
-        }
         return docClone.outerHTML;
-    }""")
+    }}""")
+    
+    # Now in Python, replace image URLs with their local paths
+    # We need to find all src and data attributes in the HTML
+    
+    # Find all image URLs in the HTML
+    img_urls = re.findall(r'src="([^"]+)"', html_data)
+    obj_urls = re.findall(r'data="([^"]+)"', html_data)
+    
+    all_urls = set(img_urls + obj_urls)
+    
+    for url in all_urls:
+        if url.startswith('data:'):
+            continue
+            
+        full_url = url
+        if full_url.startswith('//'):
+            full_url = 'https:' + full_url
+        elif full_url.startswith('/'):
+            full_url = 'https://artofproblemsolving.com' + full_url
+            
+        # Generate the safe filename using the exact same logic as in extract_problems_to_json
+        ext = os.path.splitext(urllib.parse.urlparse(full_url).path)[1]
+        if not ext or len(ext) > 5: 
+            ext = '.png'
+        
+        safe_name = hashlib.md5(full_url.encode()).hexdigest() + ext
+        local_rel_path = f"images/{safe_name}"
+        
+        # Replace the original URL with the local path in the HTML string
+        html_data = html_data.replace(f'src="{url}"', f'src="{local_rel_path}"')
+        html_data = html_data.replace(f'data="{url}"', f'data="{local_rel_path}"')
     
     # Remove the domain name COMPLETELY from the final file
     html_data = html_data.replace('artofproblemsolving.com', 'offline-site.local')
@@ -777,14 +820,6 @@ def cleanup_page(page):
     }""")
 
 def main():
-    output_dir = "output_pdfs_intro-geometry-ebook"
-    #output_dir = "output_pdfs_intro-counting-ebook"
-    #output_dir = "output_pdfs_intro-number-theory-ebook"
-    #output_dir = "output_pdfs_intermediate-counting-ebook"
-    #output_dir = "output_pdfs_precalculus-ebook"
-    #output_dir = "output_pdfs_calculus-ebook"
-    #output_dir = "output_pdfs_aops-vol1-ebook"
-    #output_dir = "output_pdfs_aops-vol2-ebook"
     
     os.makedirs(output_dir, exist_ok=True)
     
@@ -839,7 +874,8 @@ def main():
         page.goto(DIRECTORY_URL, wait_until="networkidle")
         
         try:
-            links = page.locator(LINK_SELECTOR).evaluate_all("elements => elements.map(e => e.href)")
+            # Selector for the links to the individual chapters
+            links = page.locator("a").evaluate_all("elements => elements.map(e => e.href)")
             links = [link for link in links if link and link.startswith('http') and 'ebook' in link]
             
             unique_links = []
@@ -897,7 +933,7 @@ def main():
                 extract_content_flow_to_json(page, filename, link, output_dir)
                 
                 # Save offline HTML (with solutions expanded)
-                save_offline_html(page, html_filename)
+                save_offline_html(page, html_filename, output_dir)
                 
                 # Hide redundant headers and footers
                 cleanup_page(page)
@@ -972,7 +1008,7 @@ def main():
                     extract_content_flow_to_json(page, filename, link, output_dir)
                     
                     # Save offline HTML (with solutions expanded)
-                    save_offline_html(page, html_filename)
+                    save_offline_html(page, html_filename, output_dir)
                     
                     # Hide redundant headers and footers
                     cleanup_page(page)
