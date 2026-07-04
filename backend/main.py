@@ -163,13 +163,14 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
             mapping_data = mapping_data[1:]
         
         class DummyTask:
-            def __init__(self, day_number, topic, class_content, homework, pdf_materials, chapter=None):
+            def __init__(self, day_number, topic, class_content, homework, pdf_materials, chapter=None, videos=None):
                 self.day_number = day_number
                 self.topic = topic
                 self.class_content = class_content
                 self.homework = homework
                 self.pdf_materials = pdf_materials
                 self.chapter = chapter
+                self.videos = videos or []
 
         parsed_tasks = []
         day_counter = 1
@@ -181,6 +182,7 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
                 for child in item["children"]:
                     title = child.get("title", f"Day {day_counter}")
                     pdf = child.get("pdf")
+                    videos = child.get("videos", [])
                     pdfs = [pdf] if pdf else []
                     
                     parsed_tasks.append(DummyTask(
@@ -189,12 +191,14 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
                         class_content=f"Study: {title}",
                         homework=f"Review {title}",
                         pdf_materials=pdfs,
-                        chapter=parent_title
+                        chapter=parent_title,
+                        videos=videos
                     ))
                     day_counter += 1
             else:
                 title = item.get("title", f"Day {day_counter}")
                 pdf = item.get("pdf")
+                videos = item.get("videos", [])
                 pdfs = [pdf] if pdf else []
                 parsed_tasks.append(DummyTask(
                     day_number=day_counter,
@@ -202,7 +206,8 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
                     class_content=f"Study: {title}",
                     homework=f"Review {title}",
                     pdf_materials=pdfs,
-                    chapter=None
+                    chapter=None,
+                    videos=videos
                 ))
                 day_counter += 1
     except Exception as e:
@@ -284,7 +289,8 @@ async def parse_course(request: schemas.ParseRequest, db: Session = Depends(get_
             homework=task_data.homework,
             pdf_materials=resolved_pdfs,
             class_status=class_status,
-            homework_status=homework_status
+            homework_status=homework_status,
+            videos=getattr(task_data, 'videos', [])
         )
         db.add(db_task)
     

@@ -13,6 +13,7 @@ interface Task {
   class_content: string;
   homework: string;
   pdf_materials: string[];
+  videos?: {title: string, url: string}[];
   class_status: string;
   homework_status: string;
   class_data?: any;
@@ -1357,6 +1358,20 @@ const App = () => {
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                               <div className="flex items-center flex-wrap gap-3">
                                 <h3 className="text-lg font-bold text-slate-800 leading-tight">{task.topic.replace(/^Chapter\s+\d+\s*/i, '')}</h3>
+                                {task.videos && task.videos.map((video, vIdx) => (
+                                  <a
+                                    key={vIdx}
+                                    href={video.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:text-blue-700 flex items-center"
+                                    title={video.title}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                                    </svg>
+                                  </a>
+                                ))}
                                   {task.pdf_materials && task.pdf_materials.length > 0 && (
                                     <a 
                                       href={`${API_BASE}/files/${encodeURIComponent(task.pdf_materials[0])}`}
@@ -1556,7 +1571,23 @@ const App = () => {
               <X className="w-6 h-6" />
             </button>
             <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-2xl font-bold text-slate-900 pr-12">{activeClassTask.topic.replace(/^Chapter\s+\d+\s*/i, '')}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-slate-900 pr-12">{activeClassTask.topic.replace(/^Chapter\s+\d+\s*/i, '')}</h2>
+                {activeClassTask.videos && activeClassTask.videos.map((video, vIdx) => (
+                  <a
+                    key={vIdx}
+                    href={video.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-700 flex items-center"
+                    title={video.title}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                    </svg>
+                  </a>
+                ))}
+              </div>
             </div>
             <div className="p-6 sm:p-8 overflow-y-auto flex-grow space-y-8 bg-slate-50/30">
               {classLoading && classQuestions.length === 0 && classContentFlow.length === 0 ? (

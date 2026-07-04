@@ -11,14 +11,11 @@
 # --- Frontend specific ---
 frontend/node_modules/
 frontend/dist/
-frontend/aitutor.db
 
 # --- Backend specific ---
-backend/aitutor.db
 
 # --- Other Generated Files ---
 output_pdfs_*/
 _bak/
 auth_state.json
 generate_json*.py
-toc_mapping*.json

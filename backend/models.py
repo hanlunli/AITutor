@@ -34,6 +34,7 @@ class DailyTask(Base):
     class_content = Column(Text)
     homework = Column(Text)
     pdf_materials = Column(JSON, default=list)  # List of PDF file paths
+    videos = Column(JSON, default=list)
     
     class_status = Column(String, default="pending")  # pending, completed, na
     homework_status = Column(String, default="pending")  # pending, completed, na

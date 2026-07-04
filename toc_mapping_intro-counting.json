@@ -1,0 +1,876 @@
+[
+    {
+        "book title": "Introduction to Counting & Probability"
+    },
+    {
+        "title": "1 Counting Is Arithmetic",
+        "children": [
+            {
+                "title": "1.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s1.pdf"
+            },
+            {
+                "title": "1.2 Counting Lists of Numbers",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s2.pdf",
+                "videos": [
+                    {
+                        "title": "1.2 Counting is as Easy as 1, 2, 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/175"
+                    },
+                    {
+                        "title": "1.2 Counting is as Easy as 24, 28, 32",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/176"
+                    }
+                ]
+            },
+            {
+                "title": "1.3 Counting with Addition and Subtraction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s3.pdf",
+                "videos": [
+                    {
+                        "title": "1.3 Venn Diagrams with Two Categories",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/177"
+                    },
+                    {
+                        "title": "1.3 Venn Diagrams with Three Categories",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/178"
+                    }
+                ]
+            },
+            {
+                "title": "1.4 Counting Multiple Events",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s4.pdf",
+                "videos": [
+                    {
+                        "title": "1.4 Counting with Multiplication Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/179"
+                    },
+                    {
+                        "title": "1.4 Counting with Multiplication Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/180"
+                    },
+                    {
+                        "title": "1.4 Factorial Introduction",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/181"
+                    },
+                    {
+                        "title": "1.4 Manipulating Factorials",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/182"
+                    }
+                ]
+            },
+            {
+                "title": "1.5 Permutations",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s5.pdf",
+                "videos": [
+                    {
+                        "title": "1.5 Counting Permutations",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/183"
+                    },
+                    {
+                        "title": "1.5 Permutations and Factorials",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/184"
+                    },
+                    {
+                        "title": "1.5 With or Without Replacement",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter1/185"
+                    }
+                ]
+            },
+            {
+                "title": "1.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1s6.pdf"
+            },
+            {
+                "title": "Chapter 1 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1pr.pdf"
+            },
+            {
+                "title": "Chapter 1 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c1pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "2 Basic Counting Techniques",
+        "children": [
+            {
+                "title": "2.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s1.pdf"
+            },
+            {
+                "title": "2.2 Casework",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s2.pdf",
+                "videos": [
+                    {
+                        "title": "2.2 Casework Counting Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/186"
+                    },
+                    {
+                        "title": "2.2 Casework Counting Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/187"
+                    }
+                ]
+            },
+            {
+                "title": "2.3 Complementary Counting",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s3.pdf",
+                "videos": [
+                    {
+                        "title": "2.3 Complementary Counting Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/188"
+                    },
+                    {
+                        "title": "2.3 Complementary Counting Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/189"
+                    }
+                ]
+            },
+            {
+                "title": "2.4 Constructive Counting",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s4.pdf",
+                "videos": [
+                    {
+                        "title": "2.4 Constructive Counting Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/190"
+                    }
+                ]
+            },
+            {
+                "title": "2.5 Counting with Restrictions",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s5.pdf",
+                "videos": [
+                    {
+                        "title": "2.5 Counting with Restrictions Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/191"
+                    },
+                    {
+                        "title": "2.5 Counting with Restrictions Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter2/192"
+                    }
+                ]
+            },
+            {
+                "title": "2.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2s6.pdf"
+            },
+            {
+                "title": "Chapter 2 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2pr.pdf"
+            },
+            {
+                "title": "Chapter 2 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c2pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "3 Correcting for Overcounting",
+        "children": [
+            {
+                "title": "3.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3s1.pdf"
+            },
+            {
+                "title": "3.2 Permutations with Repeated Elements",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3s2.pdf",
+                "videos": [
+                    {
+                        "title": "3.2 Counting the Number of Arrangements of Letters in a Word",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter3/59"
+                    }
+                ]
+            },
+            {
+                "title": "3.3 Counting Pairs of Items",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3s3.pdf",
+                "videos": [
+                    {
+                        "title": "3.3 Counting Pairs",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter3/60"
+                    },
+                    {
+                        "title": "3.3 Counting Diagonals with Division",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter3/58"
+                    }
+                ]
+            },
+            {
+                "title": "3.4 Counting with Symmetries",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3s4.pdf",
+                "videos": [
+                    {
+                        "title": "3.4 Counting Objects in a Circle Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter3/57"
+                    },
+                    {
+                        "title": "3.4 Counting Objects in a Circle Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter3/61"
+                    }
+                ]
+            },
+            {
+                "title": "3.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3s5.pdf"
+            },
+            {
+                "title": "Chapter 3 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3pr.pdf"
+            },
+            {
+                "title": "Chapter 3 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c3pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "4 Committees and Combinations",
+        "children": [
+            {
+                "title": "4.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4s1.pdf"
+            },
+            {
+                "title": "4.2 Committee Forming",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4s2.pdf",
+                "videos": [
+                    {
+                        "title": "4.2 Counting with Combinations Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/62"
+                    },
+                    {
+                        "title": "4.2 Counting with Combinations Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/63"
+                    }
+                ]
+            },
+            {
+                "title": "4.3 How to Compute Combinations",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4s3.pdf",
+                "videos": [
+                    {
+                        "title": "4.3 Computing Combinations Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/64"
+                    },
+                    {
+                        "title": "4.3 Computing Combinations Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/65"
+                    },
+                    {
+                        "title": "4.3 Computing Combinations Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/66"
+                    }
+                ]
+            },
+            {
+                "title": "4.4 Our First Combinatorial Identity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4s4.pdf",
+                "videos": [
+                    {
+                        "title": "4.4 Computing Combinations Part 4",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter4/67"
+                    }
+                ]
+            },
+            {
+                "title": "4.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4s5.pdf"
+            },
+            {
+                "title": "Chapter 4 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4pr.pdf"
+            },
+            {
+                "title": "Chapter 4 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c4pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "5 More With Combinations",
+        "children": [
+            {
+                "title": "5.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5s1.pdf"
+            },
+            {
+                "title": "5.2 Paths on a Grid",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5s2.pdf",
+                "videos": [
+                    {
+                        "title": "5.2 Counting Paths on a Grid",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/73"
+                    }
+                ]
+            },
+            {
+                "title": "5.3 More Committee-type Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5s3.pdf",
+                "videos": [
+                    {
+                        "title": "5.3 Combinations with Restrictions Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/74"
+                    },
+                    {
+                        "title": "5.3 Combinations with Restrictions Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/75"
+                    },
+                    {
+                        "title": "5.3 Combinations with Restrictions Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/76"
+                    }
+                ]
+            },
+            {
+                "title": "5.4 Distinguishability",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5s4.pdf",
+                "videos": [
+                    {
+                        "title": "5.4 Distinguishability Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/78"
+                    },
+                    {
+                        "title": "5.4 Distinguishability Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter5/79"
+                    }
+                ]
+            },
+            {
+                "title": "5.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5s5.pdf"
+            },
+            {
+                "title": "Chapter 5 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5pr.pdf"
+            },
+            {
+                "title": "Chapter 5 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c5pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "6 Some Harder Counting Problems",
+        "children": [
+            {
+                "title": "6.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c6s1.pdf"
+            },
+            {
+                "title": "6.2 Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c6s2.pdf",
+                "videos": [
+                    {
+                        "title": "6.2 Classic Factorial Counting Problem",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter6/80"
+                    },
+                    {
+                        "title": "6.2 Constructive Counting Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter6/81"
+                    },
+                    {
+                        "title": "6.2 Counting with Restrictions Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter6/82"
+                    },
+                    {
+                        "title": "6.2 Counting with Combinations Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter6/83"
+                    }
+                ]
+            },
+            {
+                "title": "6.3 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c6s3.pdf"
+            },
+            {
+                "title": "Chapter 6 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c6pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "7 Introduction to Probability",
+        "children": [
+            {
+                "title": "7.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7s1.pdf"
+            },
+            {
+                "title": "7.2 Basic Probability",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7s2.pdf"
+            },
+            {
+                "title": "7.3 Equally Likely Outcomes",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7s3.pdf",
+                "videos": [
+                    {
+                        "title": "7.3 Probability and Equally Likely Events",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/84"
+                    }
+                ]
+            },
+            {
+                "title": "7.4 Counting Techniques in Probability Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7s4.pdf",
+                "videos": [
+                    {
+                        "title": "7.4 Probability and Combinations Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/85"
+                    },
+                    {
+                        "title": "7.4 Probability and Combinations Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/86"
+                    },
+                    {
+                        "title": "7.4 Probability and Combinations Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/87"
+                    },
+                    {
+                        "title": "7.4 Probability as Two Counting Problems in One!",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/89"
+                    },
+                    {
+                        "title": "7.4 Probability and Combinations Part 4",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter7/88"
+                    }
+                ]
+            },
+            {
+                "title": "7.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7s5.pdf"
+            },
+            {
+                "title": "Chapter 7 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7pr.pdf"
+            },
+            {
+                "title": "Chapter 7 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c7pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "8 Basic Probability Techniques",
+        "children": [
+            {
+                "title": "8.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s1.pdf"
+            },
+            {
+                "title": "8.2 Probability and Addition",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s2.pdf",
+                "videos": [
+                    {
+                        "title": "8.2 Probability with Casework",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/103"
+                    }
+                ]
+            },
+            {
+                "title": "8.3 Complementary Probabilities",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s3.pdf",
+                "videos": [
+                    {
+                        "title": "8.3 Complementary Probability Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/111"
+                    },
+                    {
+                        "title": "8.3 Complementary Probability Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/110"
+                    },
+                    {
+                        "title": "8.3 Complementary Probability Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/109"
+                    },
+                    {
+                        "title": "8.3 Complementary Probability Part 4",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/108"
+                    }
+                ]
+            },
+            {
+                "title": "8.4 Probability and Multiplication",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s4.pdf",
+                "videos": [
+                    {
+                        "title": "8.4 Probability with Repeated Events",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/104"
+                    },
+                    {
+                        "title": "8.4 Multiplying Probabilities Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/107"
+                    },
+                    {
+                        "title": "8.4 Multiplying Probabilities Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/106"
+                    },
+                    {
+                        "title": "8.4 Multiplying Probabilities Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter8/105"
+                    }
+                ]
+            },
+            {
+                "title": "8.5 Probability with Dependent Events",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s5.pdf"
+            },
+            {
+                "title": "8.6 Shooting Stars---a hard problem",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s6.pdf"
+            },
+            {
+                "title": "8.7 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8s7.pdf"
+            },
+            {
+                "title": "Chapter 8 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8pr.pdf"
+            },
+            {
+                "title": "Chapter 8 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c8pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "9 Think About It!",
+        "children": [
+            {
+                "title": "9.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c9s1.pdf"
+            },
+            {
+                "title": "9.2 Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c9s2.pdf",
+                "videos": [
+                    {
+                        "title": "9.2 Probability - Think About It Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter9/112"
+                    },
+                    {
+                        "title": "9.2 Probability - Think About It Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter9/113"
+                    },
+                    {
+                        "title": "9.2 Probability - Think About It Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter9/114"
+                    }
+                ]
+            },
+            {
+                "title": "9.3 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c9s3.pdf"
+            },
+            {
+                "title": "Chapter 9 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c9pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "10 Geometric Probability",
+        "children": [
+            {
+                "title": "10.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10s1.pdf"
+            },
+            {
+                "title": "10.2 Probability Using Lengths",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10s2.pdf",
+                "videos": [
+                    {
+                        "title": "10.2 Probability with Geometry Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter10/115"
+                    }
+                ]
+            },
+            {
+                "title": "10.3 Probability Using Areas",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10s3.pdf",
+                "videos": [
+                    {
+                        "title": "10.3 Probability with Geometry Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter10/116"
+                    },
+                    {
+                        "title": "10.3 Probability with Geometry Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter10/117"
+                    }
+                ]
+            },
+            {
+                "title": "10.4 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10s4.pdf"
+            },
+            {
+                "title": "Chapter 10 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10pr.pdf"
+            },
+            {
+                "title": "Chapter 10 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c10pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "11 Expected Value",
+        "children": [
+            {
+                "title": "11.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11s1.pdf"
+            },
+            {
+                "title": "11.2 Definition of Expected Value",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11s2.pdf"
+            },
+            {
+                "title": "11.3 Expected Value Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11s3.pdf",
+                "videos": [
+                    {
+                        "title": "11.3 Expected Value Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter11/118"
+                    },
+                    {
+                        "title": "11.3 Expected Value Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter11/119"
+                    },
+                    {
+                        "title": "11.3 Expected Value Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter11/120"
+                    }
+                ]
+            },
+            {
+                "title": "11.4 A Funky Game",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11s4.pdf",
+                "videos": [
+                    {
+                        "title": "11.4 Expected Value Coin Flipping Paradox",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter11/121"
+                    },
+                    {
+                        "title": "11.4 Expected Value Envelope Paradox",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter11/122"
+                    }
+                ]
+            },
+            {
+                "title": "11.5 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11s5.pdf"
+            },
+            {
+                "title": "Chapter 11 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11pr.pdf"
+            },
+            {
+                "title": "Chapter 11 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c11pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "12 Pascal's Triangle",
+        "children": [
+            {
+                "title": "12.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s1.pdf"
+            },
+            {
+                "title": "12.2 Constructing Pascal's Triangle",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s2.pdf"
+            },
+            {
+                "title": "12.3 Those Numbers Look Familiar!",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s3.pdf",
+                "videos": [
+                    {
+                        "title": "12.3 Pascal's Identity",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter12/141"
+                    },
+                    {
+                        "title": "12.3 Introducing Pascal's Triangle",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter12/140"
+                    }
+                ]
+            },
+            {
+                "title": "12.4 An Interesting Combinatorial Identity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s4.pdf"
+            },
+            {
+                "title": "12.5 Another Interesting Combinatorial Identity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s5.pdf",
+                "videos": [
+                    {
+                        "title": "12.5 Patterns in Pascal's Triangle",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter12/142"
+                    }
+                ]
+            },
+            {
+                "title": "12.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12s6.pdf"
+            },
+            {
+                "title": "Chapter 12 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12pr.pdf"
+            },
+            {
+                "title": "Chapter 12 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c12pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "13 The Hockey Stick Identity",
+        "children": [
+            {
+                "title": "13.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s1.pdf"
+            },
+            {
+                "title": "13.2 The Problem",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s2.pdf"
+            },
+            {
+                "title": "13.3 A Step-by-Step Solution",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s3.pdf",
+                "videos": [
+                    {
+                        "title": "13.3 Hockey Stick Identity Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter13/143"
+                    },
+                    {
+                        "title": "13.3 Hockey Stick Identity Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter13/144"
+                    },
+                    {
+                        "title": "13.3 Hockey Stick Identity Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter13/145"
+                    }
+                ]
+            },
+            {
+                "title": "13.4 A Clever Solution",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s4.pdf"
+            },
+            {
+                "title": "13.5 The Identity",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s5.pdf",
+                "videos": [
+                    {
+                        "title": "13.5 Hockey Stick Identity Part 4",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter13/146"
+                    },
+                    {
+                        "title": "13.5 Hockey Stick Identity Part 5",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter13/147"
+                    }
+                ]
+            },
+            {
+                "title": "13.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13s6.pdf"
+            },
+            {
+                "title": "Chapter 13 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13pr.pdf"
+            },
+            {
+                "title": "Chapter 13 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c13pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "14 The Binomial Theorem",
+        "children": [
+            {
+                "title": "14.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s1.pdf"
+            },
+            {
+                "title": "14.2 A Little Algebra",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s2.pdf",
+                "videos": [
+                    {
+                        "title": "14.2 Introducing the Binomial Theorem",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/123"
+                    }
+                ]
+            },
+            {
+                "title": "14.3 The Theorem",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s3.pdf",
+                "videos": [
+                    {
+                        "title": "14.3 Proving the Binomial Theorem with Algebra",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/124"
+                    },
+                    {
+                        "title": "14.3 Proving the Binomial Theorem with Counting",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/125"
+                    }
+                ]
+            },
+            {
+                "title": "14.4 Applications of the Binomial Theorem",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s4.pdf",
+                "videos": [
+                    {
+                        "title": "14.4 Using the Binomial Theorem Part 1",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/126"
+                    },
+                    {
+                        "title": "14.4 Using the Binomial Theorem Part 2",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/127"
+                    },
+                    {
+                        "title": "14.4 Using the Binomial Theorem Part 3",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/128"
+                    }
+                ]
+            },
+            {
+                "title": "14.5 Using the Binomial Theorem in Identities",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s5.pdf",
+                "videos": [
+                    {
+                        "title": "14.5 Using the Binomial Theorem Part 4",
+                        "url": "https://artofproblemsolving.com/videos/counting/chapter14/129"
+                    }
+                ]
+            },
+            {
+                "title": "14.6 Summary",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14s6.pdf"
+            },
+            {
+                "title": "Chapter 14 Review Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14pr.pdf"
+            },
+            {
+                "title": "Chapter 14 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c14pc.pdf"
+            }
+        ]
+    },
+    {
+        "title": "15 More Challenging Problems",
+        "children": [
+            {
+                "title": "15.1 Introduction",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c15s1.pdf"
+            },
+            {
+                "title": "15.2 Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c15s2.pdf"
+            },
+            {
+                "title": "Chapter 15 Challenge Problems",
+                "pdf": "artofproblemsolving.com_ebooks_intro-counting-ebook_c15pc.pdf"
+            }
+        ]
+    }
+]

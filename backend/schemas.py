@@ -26,6 +26,7 @@ class DailyTaskBase(BaseModel):
     class_content: str
     homework: str
     pdf_materials: List[str] = []
+    videos: List[dict] = []
     class_data: Optional[dict] = None
     homework_data: Optional[dict] = None
     has_problems: Optional[bool] = True
