@@ -92,10 +92,7 @@ def _call_deepseek(messages: list, json_format: bool = False, model: str = None)
         
         return response_text
     except Exception as e:
-        print(f"Error calling DeepSeek: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            print(f"Response text: {e.response.text}")
-        print("Falling back to Ollama 3.1...")
+        print(f"DeepSeek API unavailable ({type(e).__name__}). Falling back to Ollama 3.1...")
         return _call_ollama(messages, json_format)
 
 def _call_ollama_vision(prompt: str, image_base64: str) -> str:
