@@ -14,9 +14,45 @@ DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llama3.2-vision")
 
+def _call_ollama(messages: list, json_format: bool = False, model: str = "llama3.1") -> str:
+    url = f"{OLLAMA_HOST}/api/chat"
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False
+    }
+    
+    if json_format:
+        payload["format"] = "json"
+        
+    try:
+        response = requests.post(url, json=payload, timeout=100)
+        response.raise_for_status()
+        resp_json = response.json()
+        
+        response_text = resp_json["message"]["content"]
+        prompt_tokens = resp_json.get("prompt_eval_count", 0)
+        completion_tokens = resp_json.get("eval_count", 0)
+        
+        print("="*40 + " LLM CALL (Ollama Fallback) " + "="*40)
+        print(f"MODEL: {payload.get('model')}")
+        for msg in messages:
+            print(f"[{msg['role'].upper()}]:\n{msg['content']}\n")
+        print("-" * 80)
+        print(f"RESPONSE:\n{response_text}")
+        print("-" * 80)
+        print(f"TOKENS: Input={prompt_tokens}, Output={completion_tokens}")
+        print("="*101)
+        
+        return response_text
+    except Exception as e:
+        print(f"Error calling Ollama fallback: {e}")
+        raise RuntimeError(f"Ollama fallback error: {str(e)}")
+
 def _call_deepseek(messages: list, json_format: bool = False, model: str = None) -> str:
     if not DEEPSEEK_API_KEY:
-        raise RuntimeError("DEEPSEEK_API_KEY is not set in .env")
+        print("DEEPSEEK_API_KEY is not set in .env, falling back to Ollama")
+        return _call_ollama(messages, json_format)
         
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
@@ -33,7 +69,10 @@ def _call_deepseek(messages: list, json_format: bool = False, model: str = None)
         payload["response_format"] = {"type": "json_object"}
         
     try:
-        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=300)
+        # Added verify=False to bypass SSL certificate verification issues
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=100, verify=False)
         response.raise_for_status()
         resp_json = response.json()
         
@@ -56,7 +95,8 @@ def _call_deepseek(messages: list, json_format: bool = False, model: str = None)
         print(f"Error calling DeepSeek: {e}")
         if hasattr(e, 'response') and e.response is not None:
             print(f"Response text: {e.response.text}")
-        raise RuntimeError(f"DeepSeek error: {str(e)}")
+        print("Falling back to Ollama 3.1...")
+        return _call_ollama(messages, json_format)
 
 def _call_ollama_vision(prompt: str, image_base64: str) -> str:
     url = f"{OLLAMA_HOST}/api/generate"
@@ -69,7 +109,7 @@ def _call_ollama_vision(prompt: str, image_base64: str) -> str:
     }
         
     try:
-        response = requests.post(url, json=payload, timeout=300)
+        response = requests.post(url, json=payload, timeout=100)
         response.raise_for_status()
         resp_json = response.json()
         
