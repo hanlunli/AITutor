@@ -66,6 +66,15 @@ class ParseRequest(BaseModel):
     pdf_directory_path: str
     student_email: str
 
+class ProblemCompletionRequest(BaseModel):
+    student_email: str
+    question: str
+    solution: str = ""
+    user_answers: List[str]
+    is_correct: bool
+    attempts: int
+    chat_history: List[dict] = []
+
 class EvaluateRequest(BaseModel):
     question: str
     user_answer: str

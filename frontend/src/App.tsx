@@ -321,11 +321,15 @@ interface ChatMessage {
   content: string;
 }
 
-const ProblemChat = ({ question, pdfPath, isParent }: { question: Question, pdfPath?: string, isParent?: boolean }) => {
+const ProblemChat = ({ question, pdfPath, isParent, onMessagesChange }: { question: Question, pdfPath?: string, isParent?: boolean, onMessagesChange?: (messages: ChatMessage[]) => void }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (onMessagesChange) onMessagesChange(messages);
+  }, [messages, onMessagesChange]);
 
   if (isParent) return null;
 
@@ -459,6 +463,8 @@ const App = () => {
   const [classAnswers, setClassAnswers] = useState<Record<number, string>>({});
   const [classEvaluation, setClassEvaluation] = useState<Record<number, EvaluationResult>>({});
   const [classAttempts, setClassAttempts] = useState<Record<number, number>>({});
+  const [classAnswerHistories, setClassAnswerHistories] = useState<Record<number, string[]>>({});
+  const [classChatHistories, setClassChatHistories] = useState<Record<number, ChatMessage[]>>({});
   const [classImages, setClassImages] = useState<Record<number, string>>({});
   const [showClassSolutions, setShowClassSolutions] = useState<Record<number, boolean>>({});
   const [classLoading, setClassLoading] = useState(false);
@@ -470,6 +476,8 @@ const App = () => {
   const [homeworkAnswers, setHomeworkAnswers] = useState<Record<number, string>>({});
   const [homeworkEvaluations, setHomeworkEvaluations] = useState<Record<number, EvaluationResult>>({});
   const [homeworkAttempts, setHomeworkAttempts] = useState<Record<number, number>>({});
+  const [homeworkAnswerHistories, setHomeworkAnswerHistories] = useState<Record<number, string[]>>({});
+  const [homeworkChatHistories, setHomeworkChatHistories] = useState<Record<number, ChatMessage[]>>({});
   const [homeworkImages, setHomeworkImages] = useState<Record<number, string>>({});
   const [showHomeworkSolutions, setShowHomeworkSolutions] = useState<Record<number, boolean>>({});
   const [homeworkLoading, setHomeworkLoading] = useState(false);
@@ -768,6 +776,11 @@ const App = () => {
 
     const q = classQuestions[idx];
     const userAns = classAnswers[idx] || '';
+    const attemptRecord = userAns.trim() ? userAns : (classImages[idx] ? '[Image Uploaded]' : 'No answer provided');
+    
+    const newHistories = { ...classAnswerHistories };
+    newHistories[idx] = [...(newHistories[idx] || []), attemptRecord];
+    setClassAnswerHistories(newHistories);
 
     if (q.type === 'mcq') {
       const isCorrect = userAns === q.answer;
@@ -800,16 +813,37 @@ const App = () => {
     setClassAttempts(newAttempts);
     setEvaluatingClass(prev => ({ ...prev, [idx]: false }));
 
+    if (activeClassTask && (newEvals[idx]?.correct || newAttempts[idx] >= 3)) {
+      try {
+        await fetch(`${API_BASE}/tasks/${activeClassTask.id}/problem_completed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_email: userEmail,
+            task_id: activeClassTask.id,
+            question: q.text,
+            solution: q.solution || "",
+            user_answers: newHistories[idx],
+            is_correct: newEvals[idx]?.correct || false,
+            attempts: newAttempts[idx] || 0,
+            chat_history: classChatHistories[idx] || []
+          })
+        });
+      } catch (e) {
+        console.error('Failed to send problem completion email', e);
+      }
+    }
+
     if (activeClassTask) {
-      // isAllDoneNow should check if EVERY question in classQuestions has EITHER correct eval OR >= 2 attempts
+      // isAllDoneNow should check if EVERY question in classQuestions has EITHER correct eval OR >= 3 attempts
       // We need to use newEvals and newAttempts which contain the state AFTER this submission
       const isAllDoneNow = classQuestions.every((_, i) => {
         // If it's the current question, use the new state
         if (i === idx) {
-           return newEvals[i]?.correct || newAttempts[i] >= 2;
+           return newEvals[i]?.correct || newAttempts[i] >= 3;
         }
         // Otherwise, use the new state (which copied the old state for other questions)
-        return newEvals[i]?.correct || newAttempts[i] >= 2;
+        return newEvals[i]?.correct || newAttempts[i] >= 3;
       });
       
       const classData = { answers: classAnswers, evaluations: newEvals, images: classImages, attempts: newAttempts };
@@ -900,6 +934,11 @@ const App = () => {
 
     const q = homeworkQuestions[idx];
     const userAns = homeworkAnswers[idx] || '';
+    const attemptRecord = userAns.trim() ? userAns : (homeworkImages[idx] ? '[Image Uploaded]' : 'No answer provided');
+    
+    const newHistories = { ...homeworkAnswerHistories };
+    newHistories[idx] = [...(newHistories[idx] || []), attemptRecord];
+    setHomeworkAnswerHistories(newHistories);
 
     if (q.type === 'mcq') {
       const isCorrect = userAns === q.answer;
@@ -932,12 +971,33 @@ const App = () => {
     setHomeworkAttempts(newAttempts);
     setEvaluatingHomework(prev => ({ ...prev, [idx]: false }));
 
+    if (activeHomeworkTask && (newEvals[idx]?.correct || newAttempts[idx] >= 3)) {
+      try {
+        await fetch(`${API_BASE}/tasks/${activeHomeworkTask.id}/problem_completed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_email: userEmail,
+            task_id: activeHomeworkTask.id,
+            question: q.text,
+            solution: q.solution || "",
+            user_answers: newHistories[idx],
+            is_correct: newEvals[idx]?.correct || false,
+            attempts: newAttempts[idx] || 0,
+            chat_history: homeworkChatHistories[idx] || []
+          })
+        });
+      } catch (e) {
+        console.error('Failed to send problem completion email', e);
+      }
+    }
+
     if (activeHomeworkTask) {
       const isAllDoneNow = homeworkQuestions.every((_, i) => {
         if (i === idx) {
-           return newEvals[i]?.correct || newAttempts[i] >= 2;
+           return newEvals[i]?.correct || newAttempts[i] >= 3;
         }
-        return newEvals[i]?.correct || newAttempts[i] >= 2;
+        return newEvals[i]?.correct || newAttempts[i] >= 3;
       });
       const classData = { answers: homeworkAnswers, evaluations: newEvals, images: homeworkImages, attempts: newAttempts };
       
@@ -1660,7 +1720,7 @@ const App = () => {
                                       value={opt}
                                       checked={classAnswers[idx] === opt}
                                       onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                      disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                      disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3}
                                       className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500 disabled:opacity-50"
                                     />
                                     <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
@@ -1672,13 +1732,13 @@ const App = () => {
                                 <textarea
                                   value={classAnswers[idx] || ''}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3}
                                   className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
                                   rows={5}
                                   placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                                 />
                                 <div className="flex items-center gap-4">
-                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                                   <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
                                     <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                     Upload Work (Image)
@@ -1703,7 +1763,7 @@ const App = () => {
                                   {classImages[idx] && (
                                     <div className="relative mt-2">
                                       <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
-                                      {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                      {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                                       <button 
                                         onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                         className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
@@ -1724,7 +1784,7 @@ const App = () => {
                               </div>
                             )}
 
-                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct))) && (
+                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 3 && !classEvaluation[idx]?.correct))) && (
                               <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
                                 <h4 className={`font-bold mb-3 flex items-center ${classEvaluation[idx]?.correct ? 'text-emerald-800' : 'text-indigo-800'}`}>
                                   <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
@@ -1741,7 +1801,7 @@ const App = () => {
                               </div>
                             )}
 
-                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                               <div className="mt-6 flex justify-end">
                                 <button 
                                   onClick={() => submitSingleClassQuestion(idx)}
@@ -1755,7 +1815,13 @@ const App = () => {
                             )}
                             
                             <div className="mt-6 border-t border-slate-100 pt-4">
-                              <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
+                              <ProblemChat 
+                                key={`class-chat-${idx}`} 
+                                question={q} 
+                                pdfPath={activeClassTask.pdf_materials?.[0]} 
+                                isParent={isParent} 
+                                onMessagesChange={(msgs) => setClassChatHistories(prev => ({ ...prev, [idx]: msgs }))}
+                              />
                             </div>
                           </div>
                         );
@@ -1818,7 +1884,7 @@ const App = () => {
                                   value={opt}
                                   checked={classAnswers[idx] === opt}
                                   onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3}
                                   className="w-5 h-5 text-indigo-600 border-slate-300 focus:ring-indigo-500 disabled:opacity-50"
                                 />
                                 <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeClassTask.pdf_materials?.[0]} /></span>
@@ -1830,13 +1896,13 @@ const App = () => {
                             <textarea
                               value={classAnswers[idx] || ''}
                               onChange={(e) => setClassAnswers({...classAnswers, [idx]: e.target.value})}
-                              disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2}
+                              disabled={isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3}
                               className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
                               rows={5}
                               placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
-                              {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                              {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                               <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
                                 <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                 Upload Work (Image)
@@ -1861,7 +1927,7 @@ const App = () => {
                               {classImages[idx] && (
                                 <div className="relative mt-2">
                                   <img src={`data:image/jpeg;base64,${classImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
-                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                                   <button 
                                     onClick={() => setClassImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                     className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
@@ -1882,7 +1948,7 @@ const App = () => {
                               </div>
                             )}
 
-                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 2 && !classEvaluation[idx]?.correct))) && (
+                            {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 3 && !classEvaluation[idx]?.correct))) && (
                               <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
                                 <h4 className={`font-bold mb-3 flex items-center ${classEvaluation[idx]?.correct ? 'text-emerald-800' : 'text-indigo-800'}`}>
                                   <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
@@ -1899,7 +1965,7 @@ const App = () => {
                               </div>
                             )}
 
-                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 2) && (
+                            {!(isParent || isTaskCompleted || classEvaluation[idx]?.correct || classAttempts[idx] >= 3) && (
                               <div className="mt-6 flex justify-end">
                                 <button 
                                   onClick={() => submitSingleClassQuestion(idx)}
@@ -1913,7 +1979,13 @@ const App = () => {
                             )}
                             
                             <div className="mt-6 border-t border-slate-100 pt-4">
-                              <ProblemChat key={`class-chat-${idx}`} question={q} pdfPath={activeClassTask.pdf_materials?.[0]} isParent={isParent} />
+                              <ProblemChat 
+                                key={`class-chat-${idx}`} 
+                                question={q} 
+                                pdfPath={activeClassTask.pdf_materials?.[0]} 
+                                isParent={isParent} 
+                                onMessagesChange={(msgs) => setClassChatHistories(prev => ({ ...prev, [idx]: msgs }))}
+                              />
                             </div>
                           </div>
                       );
@@ -1927,7 +1999,7 @@ const App = () => {
               <div className="p-5 sm:p-8 border-t border-slate-100 bg-slate-50/80 sm:rounded-b-3xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
                   {(!classContentFlow || classContentFlow.length === 0) && classQuestions.length > 0 && (
                     <div className="text-sm font-medium text-slate-500 order-2 sm:order-1 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-                      {classQuestions.filter((_, i) => classEvaluation[i]?.correct || classAttempts[i] >= 2).length} / {classQuestions.length} completed
+                      {classQuestions.filter((_, i) => classEvaluation[i]?.correct || classAttempts[i] >= 3).length} / {classQuestions.length} completed
                     </div>
                   )}
                   <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-3">
@@ -1966,7 +2038,7 @@ const App = () => {
                           <CheckCircle2 className="w-5 h-5 mr-2" /> Mark as Read & Close
                         </button>
                       )
-                    ) : classQuestions.every((_, idx) => classEvaluation[idx]?.correct || classAttempts[idx] >= 2) || activeClassTask.class_status === 'completed' ? (
+                    ) : classQuestions.every((_, idx) => classEvaluation[idx]?.correct || classAttempts[idx] >= 3) || activeClassTask.class_status === 'completed' ? (
                       <button 
                         onClick={() => setActiveClassTask(null)}
                         className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center w-full sm:w-auto"
@@ -2021,10 +2093,10 @@ const App = () => {
                       <div className="flex flex-wrap gap-2 mb-8">
                         {homeworkQuestions.map((_, idx) => {
                           let bgColor = "bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200";
-                          if (idx === homeworkCurrentIndex) bgColor = "bg-rose-500 text-white shadow-md ring-4 ring-rose-100 border-rose-500";
+                          if (idx === homeworkCurrentIndex) bgColor = "bg-purple-600 text-white shadow-md ring-4 ring-purple-100 border-purple-600";
                           else if (homeworkEvaluations[idx]?.correct) bgColor = "bg-emerald-500 text-white border-emerald-500 shadow-sm";
                           else if (homeworkEvaluations[idx] && !homeworkEvaluations[idx].correct) bgColor = "bg-rose-500 text-white border-rose-500 shadow-sm";
-                          else if (homeworkAnswers[idx] || homeworkImages[idx]) bgColor = "bg-rose-300 text-white border-rose-300 shadow-sm";
+                          else if (homeworkAnswers[idx] || homeworkImages[idx]) bgColor = "bg-purple-300 text-white border-purple-300 shadow-sm";
                           
                           return (
                             <button
@@ -2076,7 +2148,7 @@ const App = () => {
                                   value={opt}
                                   checked={homeworkAnswers[idx] === opt}
                                   onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
-                                  disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
+                                  disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3}
                                   className="w-5 h-5 text-rose-600 border-slate-300 focus:ring-rose-500 disabled:opacity-50"
                                 />
                                 <span className="text-slate-700 font-medium"><MathText text={opt} pdfPath={activeHomeworkTask.pdf_materials?.[0]} /></span>
@@ -2088,13 +2160,13 @@ const App = () => {
                             <textarea
                               value={homeworkAnswers[idx] || ''}
                               onChange={(e) => setHomeworkAnswers({...homeworkAnswers, [idx]: e.target.value})}
-                              disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2}
+                              disabled={isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3}
                               className="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none disabled:bg-slate-100 disabled:text-slate-500 transition-shadow"
                               rows={5}
                               placeholder={isParent ? "Student's answer will appear here..." : "Type your answer here..."}
                             />
                             <div className="flex items-center gap-4">
-                              {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                              {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3) && (
                               <label className="cursor-pointer flex items-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-sm font-semibold text-slate-700 rounded-lg transition-colors">
                                 <ImageIcon className="w-4 h-4 mr-2 text-slate-500" />
                                 Upload Work (Image)
@@ -2119,7 +2191,7 @@ const App = () => {
                               {homeworkImages[idx] && (
                                 <div className="relative mt-2">
                                   <img src={`data:image/jpeg;base64,${homeworkImages[idx]}`} alt="uploaded" className="h-20 rounded-lg border border-slate-200 shadow-sm" />
-                                  {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                                  {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3) && (
                                   <button 
                                     onClick={() => setHomeworkImages(prev => {const newImgs={...prev}; delete newImgs[idx]; return newImgs;})} 
                                     className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 shadow-sm transition-colors"
@@ -2140,7 +2212,7 @@ const App = () => {
                           </div>
                         )}
 
-                          {(!isParent && (homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 2 && !homeworkEvaluations[idx]?.correct))) && (
+                          {(!isParent && (homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 3 && !homeworkEvaluations[idx]?.correct))) && (
                             <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${homeworkEvaluations[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
                             <h4 className={`font-bold mb-3 flex items-center ${homeworkEvaluations[idx]?.correct ? 'text-emerald-800' : 'text-rose-800'}`}>
                               <BookOpen className="w-4 h-4 mr-2" /> Correct Answer / Solution:
@@ -2157,7 +2229,7 @@ const App = () => {
                           </div>
                         )}
 
-                        {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) && (
+                        {!(isParent || isTaskCompleted || homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3) && (
                           <div className="mt-6 flex justify-end">
                             <button 
                               onClick={() => submitSingleHomeworkQuestion(idx)}
@@ -2171,7 +2243,13 @@ const App = () => {
                         )}
                         
                         <div className="mt-6 border-t border-slate-100 pt-4">
-                          <ProblemChat key={`hw-chat-${idx}`} question={q} pdfPath={activeHomeworkTask.pdf_materials?.[0]} isParent={isParent} />
+                          <ProblemChat 
+                            key={`hw-chat-${idx}`} 
+                            question={q} 
+                            pdfPath={activeHomeworkTask.pdf_materials?.[0]} 
+                            isParent={isParent} 
+                            onMessagesChange={(msgs) => setHomeworkChatHistories(prev => ({ ...prev, [idx]: msgs }))}
+                          />
                         </div>
                       </div>
                     );
@@ -2182,7 +2260,7 @@ const App = () => {
         {homeworkQuestions.length > 0 && (
           <div className="p-5 sm:p-8 border-t border-slate-100 bg-slate-50/80 sm:rounded-b-3xl flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mt-auto">
               <div className="text-sm font-medium text-slate-500 order-2 sm:order-1 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
-                {homeworkQuestions.filter((_, i) => homeworkEvaluations[i]?.correct || homeworkAttempts[i] >= 2).length} / {homeworkQuestions.length} completed
+                {homeworkQuestions.filter((_, i) => homeworkEvaluations[i]?.correct || homeworkAttempts[i] >= 3).length} / {homeworkQuestions.length} completed
               </div>
               <div className="order-1 sm:order-2 w-full sm:w-auto flex gap-3">
                 {homeworkCurrentIndex > 0 && (
@@ -2201,7 +2279,7 @@ const App = () => {
                     Next
                   </button>
                 )}
-                {homeworkQuestions.every((_, idx) => homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 2) || activeHomeworkTask.homework_status === 'completed' ? (
+                {homeworkQuestions.every((_, idx) => homeworkEvaluations[idx]?.correct || homeworkAttempts[idx] >= 3) || activeHomeworkTask.homework_status === 'completed' ? (
                   <button 
                     onClick={() => setActiveHomeworkTask(null)}
                     className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 sm:py-2.5 px-6 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center w-full sm:w-auto"

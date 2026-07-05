@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -574,6 +574,40 @@ def read_content_endpoint(task_id: int, db: Session = Depends(get_db)):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error reading JSON: {str(e)}")
     return []
+
+@app.post("/api/tasks/{task_id}/problem_completed")
+def problem_completed_endpoint(task_id: int, request: schemas.ProblemCompletionRequest, req: Request, db: Session = Depends(get_db)):
+    db_task = db.query(models.DailyTask).filter(models.DailyTask.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    student_user = db.query(models.User).filter(models.User.email == request.student_email).first()
+    if not student_user or not student_user.parent_email:
+        return {"message": "No parent email found"}
+        
+    base_url = str(req.base_url).rstrip('/')
+    pdf_path = db_task.pdf_materials[0] if db_task.pdf_materials else ""
+        
+    try:
+        email_service.send_problem_completion_email(
+            student_email=request.student_email,
+            parent_email=student_user.parent_email,
+            task_topic=db_task.topic,
+            question=request.question,
+            solution=request.solution,
+            user_answers=request.user_answers,
+            is_correct=request.is_correct,
+            attempts=request.attempts,
+            chat_history=request.chat_history,
+            base_url=base_url,
+            pdf_path=pdf_path
+        )
+    except Exception as e:
+        import sys
+        print(f"ERROR: Failed to send problem completion email: {e}", file=sys.stderr)
+        sys.stderr.flush()
+        
+    return {"message": "Email sent"}
 
 @app.post("/api/evaluate_answer")
 def evaluate_answer_endpoint(request: schemas.EvaluateRequest):
