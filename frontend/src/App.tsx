@@ -1857,7 +1857,7 @@ const App = () => {
                         <div key={idx} className="space-y-4 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-start mb-4">
                           <p className="font-medium text-slate-800 text-lg leading-relaxed"><span className="text-indigo-600 font-bold mr-3 bg-indigo-50 px-2 py-1 rounded-lg">{q.number || (idx + 1) + '.'}</span><MathText text={q.text} pdfPath={activeClassTask.pdf_materials?.[0]} /></p>
-                          {q.solution && (
+                          {isParent && q.solution && (
                             <button
                               onClick={() => setShowClassSolutions(prev => ({ ...prev, [idx]: !prev[idx] }))}
                               className="flex-shrink-0 ml-4 text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
@@ -1867,7 +1867,7 @@ const App = () => {
                           )}
                         </div>
                         
-                          {q.solution && showClassSolutions[idx] && (
+                          {isParent && q.solution && showClassSolutions[idx] && (
                               <div className="p-5 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-slate-800 mb-6">
                                 <h4 className="font-bold text-indigo-800 mb-3 flex items-center"><BookOpen className="w-4 h-4 mr-2" /> Solution:</h4>
                                 <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100"><MathText text={q.solution} pdfPath={activeClassTask.pdf_materials?.[0]} /></div>
