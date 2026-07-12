@@ -36,8 +36,7 @@ interface EvaluationResult {
   correct: boolean;
 }
 
-//const API_BASE = 'http://localhost:8000/api';
-const API_BASE = 'http://192.168.0.130:8000/api';
+const API_BASE = 'http://localhost:8000/api';
 //const API_BASE = 'http://10.14.5.162:8000/api';
 
 const getImageUrl = (pdfPath: string, imgRelPath: string) => {
