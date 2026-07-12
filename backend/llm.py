@@ -190,7 +190,7 @@ def chat_problem(question_context: str, messages: list) -> dict:
 Here is the context of the problem:
 {question_context}
 
-Answer the student's questions in a helpful, encouraging way. Do not just give the answer directly unless they are completely stuck, but guide them to it. Explain concepts clearly. Keep it concise."""
+Answer the student's questions in a helpful, encouraging way. UNDER NO CIRCUMSTANCES should you directly give the final answer to the student. Your goal is to guide them to the correct answer through Socratic questioning and hints. If they are completely stuck, break the problem down into smaller, manageable steps. Never perform the final calculation or state the final answer for them. Explain concepts clearly. Keep it concise."""
 
     deepseek_messages = [{"role": "system", "content": system_prompt}]
     for msg in messages:
