@@ -273,7 +273,7 @@ def format_math_text_for_email(text: str, base_url: str, pdf_path: str, inline_i
     html = markdown.markdown(text)
     return html
 
-def send_problem_completion_email(student_email: str, parent_email: str, task_topic: str, question: str, solution: str, user_answers: list, is_correct: bool, attempts: int, chat_history: list, base_url: str = "", pdf_path: str = ""):
+def send_problem_completion_email(student_email: str, parent_email: str, task_topic: str, question_number: str, question: str, solution: str, user_answers: list, is_correct: bool, attempts: int, chat_history: list, base_url: str = "", pdf_path: str = ""):
     subject = f"AITutor Update: Student answered a question in {task_topic}"
     
     inline_images = []
@@ -302,6 +302,8 @@ def send_problem_completion_email(student_email: str, parent_email: str, task_to
         formatted_solution = format_math_text_for_email(solution, base_url, pdf_path, inline_images)
         solution_html = f"<h3>Official Solution</h3><div>{formatted_solution}</div>"
     
+    question_heading = f"<h3>Question {question_number}</h3>" if question_number else "<h3>Question</h3>"
+    
     body = f"""
     <html>
     <body>
@@ -309,7 +311,7 @@ def send_problem_completion_email(student_email: str, parent_email: str, task_to
         <p><strong>Student:</strong> {student_email}</p>
         <p><strong>Task:</strong> {task_topic}</p>
         <hr>
-        <h3>Question</h3>
+        {question_heading}
         <div>{formatted_question}</div>
         {solution_html}
         {answers_html}

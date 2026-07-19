@@ -820,6 +820,7 @@ const App = () => {
           body: JSON.stringify({
             student_email: userEmail,
             task_id: activeClassTask.id,
+            question_number: q.number || String(idx + 1),
             question: q.text,
             solution: q.solution || "",
             user_answers: newHistories[idx],
@@ -978,6 +979,7 @@ const App = () => {
           body: JSON.stringify({
             student_email: userEmail,
             task_id: activeHomeworkTask.id,
+            question_number: q.number || String(idx + 1),
             question: q.text,
             solution: q.solution || "",
             user_answers: newHistories[idx],

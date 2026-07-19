@@ -593,6 +593,7 @@ def problem_completed_endpoint(task_id: int, request: schemas.ProblemCompletionR
             student_email=request.student_email,
             parent_email=student_user.parent_email,
             task_topic=db_task.topic,
+            question_number=request.question_number,
             question=request.question,
             solution=request.solution,
             user_answers=request.user_answers,

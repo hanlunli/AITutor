@@ -68,6 +68,7 @@ class ParseRequest(BaseModel):
 
 class ProblemCompletionRequest(BaseModel):
     student_email: str
+    question_number: str = ""
     question: str
     solution: str = ""
     user_answers: List[str]
