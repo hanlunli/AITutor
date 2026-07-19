@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, FileText, Loader2, X, MessageSquare, Send, Image as ImageIcon, BookOpen, Pencil, Key, AlertCircle, Ban, Dices, Music, Box, PlayCircle, LogOut, Trash2, Sparkles, Users, UserX, Calendar } from 'lucide-react'
+import { CheckCircle2, FileText, Loader2, X, MessageSquare, Send, Image as ImageIcon, BookOpen, Pencil, Key, AlertCircle, Ban, Dices, Music, Box, PlayCircle, LogOut, Trash2, Sparkles, Users, UserX, Calendar, RotateCcw } from 'lucide-react'
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
@@ -768,6 +768,52 @@ const App = () => {
     }
   };
 
+  const resetSingleClassQuestion = async (idx: number) => {
+    if (!activeClassTask) return;
+    if (!window.confirm("Are you sure you want to reset this question? The student will have to answer it again.")) return;
+
+    const newAnswers = { ...classAnswers }; delete newAnswers[idx];
+    const newEvals = { ...classEvaluation }; delete newEvals[idx];
+    const newAttempts = { ...classAttempts }; delete newAttempts[idx];
+    const newImages = { ...classImages }; delete newImages[idx];
+    const newAnswerHistories = { ...classAnswerHistories }; delete newAnswerHistories[idx];
+    const newChatHistories = { ...classChatHistories }; delete newChatHistories[idx];
+
+    setClassAnswers(newAnswers);
+    setClassEvaluation(newEvals);
+    setClassAttempts(newAttempts);
+    setClassImages(newImages);
+    setClassAnswerHistories(newAnswerHistories);
+    setClassChatHistories(newChatHistories);
+
+    const updatedClassData = { 
+      answers: newAnswers, 
+      evaluations: newEvals, 
+      images: newImages, 
+      attempts: newAttempts,
+      answer_histories: newAnswerHistories,
+      chat_histories: newChatHistories
+    };
+
+    try {
+      const payload: any = { class_data: updatedClassData };
+      payload.class_status = 'pending'; 
+
+      const res = await fetch(`${API_BASE}/tasks/${activeClassTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setActiveClassTask(updatedTask);
+      }
+    } catch (e) {
+      console.error("Failed to reset question", e);
+    }
+  };
+
   const submitSingleClassQuestion = async (idx: number) => {
     setEvaluatingClass(prev => ({ ...prev, [idx]: true }));
     const newEvals: Record<number, EvaluationResult> = { ...classEvaluation };
@@ -924,6 +970,52 @@ const App = () => {
       setActiveHomeworkTask(null);
     } finally {
       setHomeworkLoading(false);
+    }
+  };
+
+  const resetSingleHomeworkQuestion = async (idx: number) => {
+    if (!activeHomeworkTask) return;
+    if (!window.confirm("Are you sure you want to reset this question? The student will have to answer it again.")) return;
+
+    const newAnswers = { ...homeworkAnswers }; delete newAnswers[idx];
+    const newEvals = { ...homeworkEvaluations }; delete newEvals[idx];
+    const newAttempts = { ...homeworkAttempts }; delete newAttempts[idx];
+    const newImages = { ...homeworkImages }; delete newImages[idx];
+    const newAnswerHistories = { ...homeworkAnswerHistories }; delete newAnswerHistories[idx];
+    const newChatHistories = { ...homeworkChatHistories }; delete newChatHistories[idx];
+
+    setHomeworkAnswers(newAnswers);
+    setHomeworkEvaluations(newEvals);
+    setHomeworkAttempts(newAttempts);
+    setHomeworkImages(newImages);
+    setHomeworkAnswerHistories(newAnswerHistories);
+    setHomeworkChatHistories(newChatHistories);
+
+    const updatedHomeworkData = { 
+      answers: newAnswers, 
+      evaluations: newEvals, 
+      images: newImages, 
+      attempts: newAttempts,
+      answer_histories: newAnswerHistories,
+      chat_histories: newChatHistories
+    };
+
+    try {
+      const payload: any = { homework_data: updatedHomeworkData };
+      payload.homework_status = 'pending'; 
+
+      const res = await fetch(`${API_BASE}/tasks/${activeHomeworkTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setActiveHomeworkTask(updatedTask);
+      }
+    } catch (e) {
+      console.error("Failed to reset question", e);
     }
   };
 
@@ -1814,6 +1906,17 @@ const App = () => {
                                 </button>
                               </div>
                             )}
+
+                            {isParent && (classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx]) && (
+                              <div className="mt-4 flex justify-end">
+                                <button 
+                                  onClick={() => resetSingleClassQuestion(idx)}
+                                  className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
+                                </button>
+                              </div>
+                            )}
                             
                             <div className="mt-6 border-t border-slate-100 pt-4">
                               <ProblemChat 
@@ -1975,6 +2078,17 @@ const App = () => {
                                 >
                                   {evaluatingClass[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                                   {evaluatingClass[idx] ? 'Evaluating...' : 'Submit Answer'}
+                                </button>
+                              </div>
+                            )}
+
+                            {isParent && (classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx]) && (
+                              <div className="mt-4 flex justify-end">
+                                <button 
+                                  onClick={() => resetSingleClassQuestion(idx)}
+                                  className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
                                 </button>
                               </div>
                             )}
@@ -2239,6 +2353,17 @@ const App = () => {
                             >
                               {evaluatingHomework[idx] && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                               {evaluatingHomework[idx] ? 'Evaluating...' : 'Submit Answer'}
+                            </button>
+                          </div>
+                        )}
+
+                        {isParent && (homeworkAnswers[idx] || homeworkAttempts[idx] > 0 || homeworkImages[idx]) && (
+                          <div className="mt-4 flex justify-end">
+                            <button 
+                              onClick={() => resetSingleHomeworkQuestion(idx)}
+                              className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
                             </button>
                           </div>
                         )}
