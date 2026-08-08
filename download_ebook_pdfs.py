@@ -6,17 +6,17 @@ import urllib.parse
 import hashlib
 
 # Target directory page URL
-#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
+DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-geometry-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-counting-ebook/c0toc"
-DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
+#DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/intro-number-theory-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/precalculus-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/calculus-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol1-ebook/c0toc"
 #DIRECTORY_URL = "https://artofproblemsolving.com/ebooks/aops-vol2-ebook/cftoc"
 
-#output_dir = "output_pdfs_intro-geometry-ebook"
+output_dir = "output_pdfs_intro-geometry-ebook"
 #output_dir = "output_pdfs_intro-counting-ebook"
-output_dir = "output_pdfs_intro-number-theory-ebook"
+#output_dir = "output_pdfs_intro-number-theory-ebook"
 #output_dir = "output_pdfs_intermediate-counting-ebook"
 #output_dir = "output_pdfs_precalculus-ebook"
 #output_dir = "output_pdfs_calculus-ebook"
@@ -166,29 +166,6 @@ def sanitize_filename(url):
     name = re.sub(r'[\\/*?:"<>|]', '_', name)
     return name[:100]
 
-def click_reset_buttons(page):
-    """Find and click all Reset buttons on the page"""
-    try:
-        count = page.locator('.ebk-sb--reset').count()
-        if count > 0:
-            print(f"  -> Found {count} Reset buttons, resetting them sequentially...")
-            for i in range(count):
-                try:
-                    # Click Reset button
-                    page.locator('.ebk-sb--reset').nth(i).click(force=True, timeout=1000)
-                    page.wait_for_timeout(500) # Wait for confirmation modal to appear
-                    
-                    # Find the OK button in the modal and click it
-                    ok_btn = page.locator('.aops-modal-btn:has-text("OK")')
-                    if ok_btn.count() > 0:
-                        ok_btn.first.click(force=True, timeout=1000)
-                        page.wait_for_timeout(1000) # Wait for reset animation to finish
-                except Exception as e:
-                    pass
-            print("  -> All problems have been reset")
-    except Exception as e:
-        print(f"  -> Minor error while clicking Reset buttons: {e}")
-
 def expand_all_hints(page):
     """Find and click all Hint buttons on the page iteratively (some hints are nested)"""
     try:
@@ -221,7 +198,13 @@ def expand_all_hints(page):
         print(f"  -> Minor error while expanding hints: {e}")
 
 def show_all_solutions(page):
-    """Fill out text areas and click all Show Solution buttons to load solutions"""
+    """Fill out text areas and click all Show Solution buttons to load solutions,
+    then verify every one actually revealed a .ebk-sb-solution, retrying any
+    stragglers (e.g. a slow AJAX response) before returning.
+    Returns the total number of Show Solution buttons found on the page (0 if
+    none), so callers can tell whether this page has any Exercises/Review/
+    Challenge solutions worth hiding for a student version."""
+    total_buttons = 0
     try:
         # Fill all textareas to enable the show solution buttons
         count_ta = page.locator('.ebk-sb-user-sub-before').count()
@@ -230,30 +213,50 @@ def show_all_solutions(page):
                 page.locator('.ebk-sb-user-sub-before').nth(i).fill('test')
             except:
                 pass
-                
+
         page.wait_for_timeout(1000)
-        
-        # Click all show solution buttons
-        clicked = 0
-        btns = page.locator('.ebk-sb--show-sol')
-        count_btns = btns.count()
-        for i in range(count_btns):
-            try:
-                btns.nth(i).click(force=True)
-                clicked += 1
-            except:
-                pass
-                
-        if clicked > 0:
-            print(f"  -> Clicked {clicked} 'Show Solution' buttons")
-            # Wait for AJAX to load solutions (can be slow for many problems like Review/Challenge)
-            try:
-                page.wait_for_selector('.ebk-sb-solution', state='attached', timeout=10000)
-            except:
-                pass
-            page.wait_for_timeout(5000) 
+
+        total_buttons = page.locator('.ebk-sb--show-sol').count()
+        if total_buttons == 0:
+            return 0
+
+        revealed = 0
+        max_passes = 3
+        for attempt in range(max_passes):
+            # Click every show-sol button that's still actually visible - a button
+            # the site already toggled off after a successful reveal is left alone
+            clicked_this_pass = page.evaluate("""() => {
+                let clicked = 0;
+                document.querySelectorAll('.ebk-sb--show-sol').forEach(btn => {
+                    const style = window.getComputedStyle(btn);
+                    if (style.display !== 'none' && style.visibility !== 'hidden' && btn.offsetParent !== null) {
+                        btn.click();
+                        clicked++;
+                    }
+                });
+                return clicked;
+            }""")
+
+            if clicked_this_pass > 0:
+                print(f"  -> Clicked {clicked_this_pass} 'Show Solution' button(s) (pass {attempt + 1})")
+                # Wait for AJAX to load solutions (can be slow for many problems like Review/Challenge)
+                try:
+                    page.wait_for_selector('.ebk-sb-solution', state='attached', timeout=10000)
+                except:
+                    pass
+                page.wait_for_timeout(4000)
+
+            revealed = page.locator('.ebk-sb-solution').count()
+            if revealed >= total_buttons:
+                break
+
+        if revealed < total_buttons:
+            print(f"  -> Warning: only revealed {revealed}/{total_buttons} solutions after {max_passes} passes")
+        else:
+            print(f"  -> Verified all {total_buttons} solutions were revealed")
     except Exception as e:
         print(f"  -> Minor error while showing solutions: {e}")
+    return total_buttons
 
 def extract_problems_to_json(page, pdf_filename, url, output_dir):
     """Extract problems, exercises, review, and challenge problems to JSON"""
@@ -739,9 +742,16 @@ def cleanup_page(page):
         
         /* Toolbars/Buttons around specific problems (e.g. discuss/topic buttons at top right) */
         .ebk-sb--top-right, .ebk-sb-top-right,
-        
-        /* Interactive problem elements (input box, hints, buttons) */
-        .ebk-sb-prob-sub, .ebk-sb-hint, .ebk-sb-show-hint, .ebk-sb-hide-hint {
+
+        /* Hint/solution toggle buttons - not meaningful once printed */
+        .ebk-sb-show-hint, .ebk-sb-hide-hint {
+            display: none !important;
+        }
+
+        /* .ebk-sb-solution is a direct child of .ebk-sb-prob-sub, so hide everything
+           else inside prob-sub (input box, submit button, "Your Submission" echo,
+           save status) without hiding a revealed solution along with it */
+        .ebk-sb-prob-sub > *:not(.ebk-sb-solution) {
             display: none !important;
         }
         
@@ -819,8 +829,68 @@ def cleanup_page(page):
         });
     }""")
 
+def process_link(page, link, output_dir, load_wait_ms=3000):
+    """Process a single chapter link: extract JSON, save offline HTML, and export PDFs.
+
+    The canonical, unsuffixed PDF (with all solutions revealed) keeps its original name,
+    since toc_mapping_*.json and the backend look up JSON sidecars by stripping ".pdf"
+    from that exact path. When the page actually has Exercises/Review/Challenge problems,
+    a second copy with solutions hidden (hints stay expanded) is saved alongside it with
+    a "_student" suffix, produced by directly hiding the already-revealed .ebk-sb-solution
+    nodes rather than trying to un-reveal them - cleanup_page() hides everything else inside
+    their .ebk-sb-prob-sub wrapper (including the Show Solution button itself), so clicking
+    that button AFTER cleanup_page() has run would silently fail (Playwright dispatches the
+    click at the button's now-zero-size location). Pages with nothing to hide only get the
+    canonical version.
+
+    Returns True on success, False on failure.
+    """
+    safe_name = sanitize_filename(link)
+    parent_filename = os.path.join(output_dir, f"{safe_name}.pdf")
+    student_filename = os.path.join(output_dir, f"{safe_name}_student.pdf")
+    html_filename = os.path.join(output_dir, f"{safe_name}.html")
+
+    if os.path.exists(parent_filename) and os.path.exists(html_filename):
+        print(f"  -> Already exists, skipping: {parent_filename}")
+        return True
+
+    pdf_kwargs = dict(
+        print_background=True,
+        format="A4",
+        margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"},
+    )
+
+    try:
+        page.goto(link, wait_until="networkidle")
+        page.wait_for_timeout(load_wait_ms)
+        try:
+            page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
+        except:
+            pass
+
+        expand_all_hints(page)
+        total_solution_buttons = show_all_solutions(page)
+
+        extract_problems_to_json(page, parent_filename, link, output_dir)
+        extract_content_flow_to_json(page, parent_filename, link, output_dir)
+        save_offline_html(page, html_filename, output_dir)
+
+        cleanup_page(page)
+        page.pdf(path=parent_filename, **pdf_kwargs)
+        print(f"  -> Saved parent (with answers) PDF to {parent_filename}")
+
+        if total_solution_buttons > 0:
+            page.evaluate("document.querySelectorAll('.ebk-sb-solution').forEach(el => el.style.display = 'none')")
+            page.pdf(path=student_filename, **pdf_kwargs)
+            print(f"  -> Saved student (no answers) PDF to {student_filename}")
+
+        return True
+    except Exception as e:
+        print(f"  -> Failed to process {link}: {e}")
+        return False
+
 def main():
-    
+
     os.makedirs(output_dir, exist_ok=True)
     
     with sync_playwright() as p:
@@ -895,144 +965,29 @@ def main():
             return
             
         failed_links = []
-        
+
         # First pass: Process each link sequentially
         for i, link in enumerate(links):
             print(f"[{i+1}/{len(links)}] Processing: {link}")
-            
-            safe_name = sanitize_filename(link)
-            filename = os.path.join(output_dir, f"{safe_name}.pdf")
-            html_filename = os.path.join(output_dir, f"{safe_name}.html")
-            
-            if os.path.exists(filename) and os.path.exists(html_filename):
-                print(f"  -> Already exists, skipping: {filename}")
-                continue
-                
-            try:
-                page.goto(link, wait_until="networkidle")
-                page.wait_for_timeout(3000)
-                
-                try:
-                    page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                except:
-                    pass
-                
-                # Click all Reset buttons
-                click_reset_buttons(page)
-                
-                # Expand all hints
-                expand_all_hints(page)
-                
-                # Show all solutions for Exercises, Review, and Challenge
-                show_all_solutions(page)
-                
-                # Extract problems to JSON
-                extract_problems_to_json(page, filename, link, output_dir)
-                
-                # Extract the full content flow for the reader
-                extract_content_flow_to_json(page, filename, link, output_dir)
-                
-                # Save offline HTML (with solutions expanded)
-                save_offline_html(page, html_filename, output_dir)
-                
-                # Hide redundant headers and footers
-                cleanup_page(page)
-                
-                # Export to PDF (with solutions expanded)
-                # print_background=True preserves web page background colors and images
-                # format="A4" sets the paper size
-                page.pdf(
-                    path=filename, 
-                    print_background=True, 
-                    format="A4",
-                    margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"}
-                )
-                print(f"  -> Saved PDF to {filename}")
-                
-                # Reset webpage completely after saving everything to prepare for the next page
-                click_reset_buttons(page)
-                page.reload(wait_until="networkidle")
-                page.wait_for_timeout(3000)
-                try:
-                    page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                except:
-                    pass
-            except Exception as e:
-                print(f"  -> Failed to process {link}: {e}")
+            if not process_link(page, link, output_dir, load_wait_ms=3000):
                 failed_links.append(link)
-                
+
         # Subsequent retries: Retry up to 3 times
         max_retries = 3
         for attempt in range(1, max_retries + 1):
             if not failed_links:
                 break
-                
+
             print("\n" + "="*50)
             print(f"Retry attempt {attempt} starting, currently {len(failed_links)} failed links...")
             print("="*50 + "\n")
-            
+
             current_failed = []
             for i, link in enumerate(failed_links):
                 print(f"[Retry attempt {attempt} - {i+1}/{len(failed_links)}] Processing: {link}")
-                
-                safe_name = sanitize_filename(link)
-                filename = os.path.join(output_dir, f"{safe_name}.pdf")
-                html_filename = os.path.join(output_dir, f"{safe_name}.html")
-                
-                if os.path.exists(filename) and os.path.exists(html_filename):
-                    print(f"  -> Already exists, skipping: {filename}")
-                    continue
-                    
-                try:
-                    page.goto(link, wait_until="networkidle")
-                    page.wait_for_timeout(5000) 
-                    
-                    try:
-                        page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                    except:
-                        pass
-                    
-                    # Click all Reset buttons
-                    click_reset_buttons(page)
-                    
-                    # Expand all hints
-                    expand_all_hints(page)
-                    
-                    # Show all solutions for Exercises, Review, and Challenge
-                    show_all_solutions(page)
-                    
-                    # Extract problems to JSON
-                    extract_problems_to_json(page, filename, link, output_dir)
-                    
-                    # Extract the full content flow for the reader
-                    extract_content_flow_to_json(page, filename, link, output_dir)
-                    
-                    # Save offline HTML (with solutions expanded)
-                    save_offline_html(page, html_filename, output_dir)
-                    
-                    # Hide redundant headers and footers
-                    cleanup_page(page)
-                    
-                    page.pdf(
-                        path=filename, 
-                        print_background=True, 
-                        format="A4",
-                        margin={"top": "10mm", "bottom": "10mm", "left": "10mm", "right": "10mm"}
-                    )
-                    print(f"  -> Saved PDF to {filename}")
-                    
-                    # Reset webpage completely after saving everything to prepare for the next page
-                    click_reset_buttons(page)
-                    page.reload(wait_until="networkidle")
-                    page.wait_for_timeout(3000)
-                    try:
-                        page.wait_for_selector('.ebk-sb-par-marker-container', timeout=10000)
-                    except:
-                        pass
-                except Exception as e:
-                    print(f"  -> Retry attempt {attempt} failed for {link}: {e}")
+                if not process_link(page, link, output_dir, load_wait_ms=5000):
                     current_failed.append(link)
-            
+
             failed_links = current_failed
             
         if failed_links:

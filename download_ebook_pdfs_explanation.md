@@ -36,7 +36,6 @@ def sanitize_filename(url): ...
 
 ### 4. Browser Automation Helpers (Lines 98-185)
 These functions simulate a user interacting with the webpage to reveal hidden content before extracting it.
-*   **`click_reset_buttons(page)`**: AoPS problems are interactive. If a user previously answered a question, it might show a green checkmark instead of the original question. This function finds all "Reset" buttons on the page, clicks them, and clicks "OK" on the confirmation popup to reset the page to a clean slate.
 *   **`expand_all_hints(page)`**: Many math problems have hidden hints. This function repeatedly clicks all "Show Hint" buttons until no more hints are hidden (it loops because some hints reveal sub-hints).
 *   **`show_all_solutions(page)`**: To reveal the official solution, the website requires the user to type something first. This function finds all text input boxes, types "test" into them, and then clicks all the "Show Solution" buttons to force the page to load the answers.
 
@@ -65,22 +64,26 @@ While the previous function extracts interactive questions, this function extrac
 *   **`save_offline_html(page, html_filename)`**: This function creates a standalone HTML file that works without the internet. It finds all images and CSS stylesheets on the page, downloads them, converts them into Base64 text strings, and embeds them directly inside the HTML file.
 *   **`cleanup_page(page)`**: Before saving a PDF, we don't want the website's top navigation bar, footer, or sidebars in the document. This function injects CSS to hide all website menus, removes shadows, and forces the textbook content to take up 100% of the screen width.
 
-### 8. The Main Execution Loop (`main`) (Lines 771-995)
+### 8. Per-Link Processing (`process_link`)
+This function does all the work for a single chapter link, and is called from `main`'s first pass and its retry loop alike.
+*   It skips the link entirely if its output files (canonical PDF + HTML) already exist (resuming where it left off if it crashed).
+*   **Pass 1 (with-answers)**: runs `expand_all_hints` -> `show_all_solutions` -> `extract_problems_to_json` -> `extract_content_flow_to_json` -> `save_offline_html` -> `cleanup_page` -> `page.pdf()`, saving the canonical, unsuffixed PDF (the one `toc_mapping_*.json` and the backend look up JSON sidecars against). `show_all_solutions` returns how many "Show Solution" buttons it clicked.
+*   **Pass 2 (student/no-answers)**: only runs if Pass 1 found at least one Show Solution button (i.e. the page actually has Exercises/Review/Challenge problems). Rather than trying to re-hide solutions by clicking Reset or reloading the page (unreliable - the AoPS account can remember a solution was already viewed, and a stale reload wouldn't survive anyway once Reset-button clicking was removed), it directly sets `display: none` on the already-revealed `.ebk-sb-solution` nodes via one `page.evaluate()` call and exports a second PDF with a `_student` suffix. Pages with nothing to hide (plain reading chapters) just get the canonical version.
+*   `cleanup_page` hides the interactive controls (input box, submit/show-solution buttons) but deliberately leaves `.ebk-sb-solution` and `.ebk-sb-hint` visible, since `.ebk-sb-solution` is a direct child of the input-box wrapper it used to hide wholesale — that wholesale hide was silently dropping every revealed Exercises/Review/Challenge answer (and every expanded hint) from the exported PDF. Because `cleanup_page`'s CSS is injected as a permanent `<style>` tag, it must run only once `show_all_solutions` no longer needs to click anything - calling it before a Show Solution button is clicked would zero out that button's layout size and make Playwright's click land at the wrong coordinates.
+
+### 9. The Main Execution Loop (`main`)
 This is where the script actually starts running.
-*   **Lines 775-808 (Login Phase)**:
+*   **Login Phase**:
     *   It checks if `auth_state.json` exists.
     *   If it doesn't, it opens a visible browser window, navigates to the AoPS website, and pauses. It waits for you to manually log in with your username and password, then press Enter in the terminal. It saves your login cookies.
-*   **Lines 810-843 (Link Gathering)**:
+*   **Link Gathering**:
     *   It opens a hidden (headless) browser using your saved login.
     *   It goes to the Table of Contents and scrapes every single chapter link.
-*   **Lines 847-910 (The Scraping Loop)**:
-    *   It loops through every single link one by one.
-    *   It skips links that have already been downloaded (resuming where it left off if it crashed).
-    *   For each page, it runs the sequence: `click_reset_buttons` -> `expand_all_hints` -> `show_all_solutions` -> `extract_problems_to_json` -> `extract_content_flow_to_json`.
-    *   Then it resets the page again, runs `save_offline_html`, runs `cleanup_page` to hide menus, and finally calls `page.pdf()` to save a beautiful PDF version of the chapter.
-*   **Lines 912-985 (Retry Logic)**:
-    *   Web scraping is prone to network timeouts. If any page fails to download, it adds it to a `failed_links` list.
-    *   It will retry failed links up to 3 times before finally giving up.
+*   **The Scraping Loop**:
+    *   It loops through every single link one by one, calling `process_link` for each.
+*   **Retry Logic**:
+    *   Web scraping is prone to network timeouts. If `process_link` fails for a page, it adds it to a `failed_links` list.
+    *   It will retry failed links (via `process_link` again) up to 3 times before finally giving up.
 
 ---
 **Summary**: This script is a highly robust pipeline that logs you in, clicks through every chapter of a digital textbook, forces all hidden answers to reveal themselves, parses the math and text into clean JSON for your custom frontend, and saves offline backups of the book.
