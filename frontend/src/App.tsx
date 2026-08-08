@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, FileText, Loader2, X, MessageSquare, Send, Image as ImageIcon, BookOpen, Pencil, Key, AlertCircle, Ban, Dices, Music, Box, PlayCircle, LogOut, Trash2, Sparkles, Users, UserX, Calendar, RotateCcw } from 'lucide-react'
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
@@ -427,6 +427,32 @@ ${question.hints ? `Hints: ${question.hints.map(h => h.text).join(' ')}` : ''}
   );
 };
 
+interface LastPosition {
+  selectedStudentEmail?: string;
+  selectedCourseId?: string;
+  taskId?: number;
+  taskType?: 'class' | 'homework';
+  questionIndex?: number;
+  expandedChapter?: string | null;
+}
+
+const lastPositionKey = (email: string) => `lastPosition_${email}`;
+
+const loadLastPosition = (email: string): LastPosition | null => {
+  if (!email) return null;
+  try {
+    const raw = localStorage.getItem(lastPositionKey(email));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveLastPosition = (email: string, position: LastPosition) => {
+  if (!email) return;
+  localStorage.setItem(lastPositionKey(email), JSON.stringify(position));
+};
+
 const App = () => {
   const [userEmail, setUserEmail] = useState<string>(() => localStorage.getItem('userEmail') || '');
   const [userRole, setUserRole] = useState<'parent' | 'student' | null>(() => (localStorage.getItem('userRole') as 'parent' | 'student') || null);
@@ -483,7 +509,14 @@ const App = () => {
   const [evaluatingHomework, setEvaluatingHomework] = useState<Record<number, boolean>>({});
   const [homeworkCurrentIndex, setHomeworkCurrentIndex] = useState(0);
 
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(() => {
+    const email = localStorage.getItem('userEmail');
+    return (email && loadLastPosition(email)?.expandedChapter) || null;
+  });
+  const restoredTaskRef = useRef(false);
+  // Snapshot the saved position once at mount, before the "remember position" effect
+  // below has a chance to overwrite it with the still-empty initial state.
+  const initialPositionRef = useRef<LastPosition | null>(loadLastPosition(localStorage.getItem('userEmail') || ''));
 
   const fetchTasks = async () => {
     try {
@@ -496,13 +529,34 @@ const App = () => {
       const tasksData = await tasksRes.json();
       const coursesData = await coursesRes.json();
       const availableCoursesData = await availableCoursesRes.json();
-      
+
       setAllTasks(tasksData);
       setGeneratedCourses(coursesData);
       setAvailableCourses(availableCoursesData);
-      
+
       if (availableCoursesData && availableCoursesData.length > 0 && !selectedCourseId) {
         setSelectedCourseId(availableCoursesData[0].id);
+      }
+
+      if (!restoredTaskRef.current) {
+        restoredTaskRef.current = true;
+        const saved = initialPositionRef.current;
+
+        if (saved?.selectedCourseId && availableCoursesData.some((c: any) => c.id === saved.selectedCourseId)) {
+          setSelectedCourseId(saved.selectedCourseId);
+        }
+
+        const savedTask = saved?.taskId != null ? tasksData.find((t: Task) => t.id === saved.taskId) : null;
+        if (savedTask && saved?.taskType) {
+          const generated = coursesData.find((c: any) => c.id === savedTask.course_id);
+          const available = generated ? availableCoursesData.find((c: any) => c.title === generated.title) : null;
+          if (available) setSelectedCourseId(available.id);
+          if (saved.taskType === 'class') {
+            openClassContent(savedTask, saved.questionIndex);
+          } else {
+            openHomework(savedTask, saved.questionIndex);
+          }
+        }
       }
     } catch (e) {
       console.error(e);
@@ -516,7 +570,9 @@ const App = () => {
         const data = await res.json();
         setStudents(data);
         if (data.length > 0 && !selectedStudentEmail) {
-          setSelectedStudentEmail(data[0].email);
+          const saved = initialPositionRef.current;
+          const savedStudentStillExists = saved?.selectedStudentEmail && data.some((s: any) => s.email === saved.selectedStudentEmail);
+          setSelectedStudentEmail(savedStudentStillExists ? saved!.selectedStudentEmail! : data[0].email);
         }
       } catch (e) {
         console.error(e);
@@ -539,6 +595,19 @@ const App = () => {
       fetchTasks();
     }
   }, [selectedStudentEmail]);
+
+  // Remember where this account last was, so a refresh returns to the same place.
+  useEffect(() => {
+    if (!isLoggedIn || !userEmail) return;
+    saveLastPosition(userEmail, {
+      selectedStudentEmail: userRole === 'parent' ? selectedStudentEmail : undefined,
+      selectedCourseId,
+      taskId: activeClassTask?.id ?? activeHomeworkTask?.id,
+      taskType: activeClassTask ? 'class' : activeHomeworkTask ? 'homework' : undefined,
+      questionIndex: activeClassTask ? classCurrentIndex : activeHomeworkTask ? homeworkCurrentIndex : undefined,
+      expandedChapter,
+    });
+  }, [isLoggedIn, userEmail, userRole, selectedStudentEmail, selectedCourseId, activeClassTask, activeHomeworkTask, classCurrentIndex, homeworkCurrentIndex, expandedChapter]);
 
   useEffect(() => {
     if (!selectedCourseId || !availableCourses.length) {
@@ -640,6 +709,8 @@ const App = () => {
         alert("Account deleted successfully.");
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userRole');
+        restoredTaskRef.current = false;
+        resetAccountScopedState();
         setIsLoggedIn(false);
         setUserEmail('');
         setUserRole(null);
@@ -651,6 +722,22 @@ const App = () => {
       console.error(e);
       alert("Network error while trying to delete account.");
     }
+  };
+
+  // Clear anything tied to the previous account so it can't leak into whoever logs in next.
+  const resetAccountScopedState = () => {
+    setSelectedStudentEmail('');
+    setSelectedCourseId('');
+    setExpandedChapter(null);
+    setActiveClassTask(null);
+    setActiveHomeworkTask(null);
+    setClassCurrentIndex(0);
+    setHomeworkCurrentIndex(0);
+    setStudents([]);
+    setAllTasks([]);
+    setTasks([]);
+    setGeneratedCourses([]);
+    setAvailableCourses([]);
   };
 
   const toggleStatus = async (taskId: number, field: 'class_status' | 'homework_status', currentStatus: string) => {
@@ -699,7 +786,7 @@ const App = () => {
     }
   };
 
-  const openClassContent = async (task: Task) => {
+  const openClassContent = async (task: Task, initialIndex?: number) => {
     setActiveClassTask(task);
     setClassLoading(true);
     setClassQuestions([]);
@@ -751,6 +838,9 @@ const App = () => {
       } else {
          setClassQuestions(qData);
          setClassContentFlow(cData);
+         if (typeof initialIndex === 'number' && qData.length > 0) {
+           setClassCurrentIndex(Math.min(Math.max(initialIndex, 0), qData.length - 1));
+         }
          // Initialize solutions to be shown by default for parents
          const initialShow: Record<number, boolean> = {};
          qData.forEach((_: any, i: number) => initialShow[i] = true);
@@ -915,7 +1005,7 @@ const App = () => {
     }
   };
 
-  const openHomework = async (task: Task) => {
+  const openHomework = async (task: Task, initialIndex?: number) => {
     setActiveHomeworkTask(task);
     setHomeworkLoading(true);
       setHomeworkQuestions([]);
@@ -938,7 +1028,10 @@ const App = () => {
             setActiveHomeworkTask(null);
         } else {
             setHomeworkQuestions(data);
-            
+            if (typeof initialIndex === 'number' && data.length > 0) {
+              setHomeworkCurrentIndex(Math.min(Math.max(initialIndex, 0), data.length - 1));
+            }
+
             // Clean up buggy saved data (where empty answers were marked as correct due to previous bug)
             const cleanEvals = { ...(savedData.evaluations || {}) };
             const cleanAttempts = { ...(savedData.attempts || {}) };
@@ -1182,6 +1275,8 @@ const App = () => {
           if (res.ok) {
             localStorage.setItem('userEmail', data.email);
             localStorage.setItem('userRole', data.role);
+            initialPositionRef.current = loadLastPosition(data.email);
+            restoredTaskRef.current = false;
             setUserRole(data.role as 'parent' | 'student');
             setIsLoggedIn(true);
           } else {
@@ -1379,6 +1474,8 @@ const App = () => {
                 onClick={() => {
                   localStorage.removeItem('userEmail');
                   localStorage.removeItem('userRole');
+                  restoredTaskRef.current = false;
+                  resetAccountScopedState();
                   setIsLoggedIn(false);
                   setUserEmail('');
                   setUserRole(null);
