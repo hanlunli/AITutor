@@ -314,9 +314,17 @@ def get_file(filepath: str):
         raise HTTPException(status_code=400, detail="Invalid filepath: Access denied")
         
     if not os.path.exists(abs_filepath):
-        print(f"File not found on disk: {abs_filepath}")
-        raise HTTPException(status_code=404, detail="File not found")
-        
+        # A "_student.pdf" (no-answers) copy only exists for chapters that actually
+        # have Exercises/Review/Challenge problems - fall back to the canonical
+        # with-answers PDF when the student-specific one wasn't generated.
+        if abs_filepath.endswith("_student.pdf"):
+            fallback_filepath = abs_filepath[:-len("_student.pdf")] + ".pdf"
+            if os.path.exists(fallback_filepath):
+                abs_filepath = fallback_filepath
+        if not os.path.exists(abs_filepath):
+            print(f"File not found on disk: {abs_filepath}")
+            raise HTTPException(status_code=404, detail="File not found")
+
     return FileResponse(abs_filepath, headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 @app.delete("/api/tasks")

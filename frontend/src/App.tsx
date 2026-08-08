@@ -45,6 +45,13 @@ const getImageUrl = (pdfPath: string, imgRelPath: string) => {
   return `${API_BASE}/files/${encodeURIComponent(absPath)}`;
 };
 
+// Students get the no-answers "_student.pdf" copy when one exists; the backend
+// falls back to the canonical (with-answers) PDF for chapters that don't have one.
+const getPdfDownloadUrl = (pdfPath: string, isParent: boolean) => {
+  const path = isParent ? pdfPath : pdfPath.replace(/\.pdf$/i, '_student.pdf');
+  return `${API_BASE}/files/${encodeURIComponent(path)}`;
+};
+
 const getIconboxConfig = (iconType: string, title: string) => {
   let IconComp: any = Key;
   let bgColor = 'bg-[#f4fafa]';
@@ -1623,9 +1630,9 @@ const App = () => {
                                   </a>
                                 ))}
                                   {task.pdf_materials && task.pdf_materials.length > 0 && (
-                                    <a 
-                                      href={`${API_BASE}/files/${encodeURIComponent(task.pdf_materials[0])}`}
-                                      target="_blank" 
+                                    <a
+                                      href={getPdfDownloadUrl(task.pdf_materials[0], isParent)}
+                                      target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-black transition-colors"
                                     >
