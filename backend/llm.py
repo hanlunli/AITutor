@@ -111,16 +111,17 @@ def _call_ollama_vision(prompt: str, image_base64: str) -> str:
         "format": "json",
         "images": [image_base64]
     }
-        
+
     try:
-        response = requests.post(url, json=payload, timeout=100)
+        # Vision models are slower to load/run than text models, especially on first call
+        response = requests.post(url, json=payload, timeout=180)
         response.raise_for_status()
         resp_json = response.json()
-        
+
         response_text = resp_json.get("response", "")
         prompt_tokens = resp_json.get("prompt_eval_count", 0)
         completion_tokens = resp_json.get("eval_count", 0)
-        
+
         print("="*40 + " LLM CALL (Ollama Vision) " + "="*40)
         print(f"MODEL: {payload.get('model')}")
         print(f"PROMPT:\n{prompt}")
@@ -129,8 +130,10 @@ def _call_ollama_vision(prompt: str, image_base64: str) -> str:
         print("-" * 80)
         print(f"TOKENS: Input={prompt_tokens}, Output={completion_tokens}")
         print("="*101)
-        
+
         return response_text
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(f"Could not reach Ollama at {OLLAMA_HOST}. Make sure Ollama is installed and running.")
     except Exception as e:
         print(f"Error calling Ollama Vision: {e}")
         raise RuntimeError(f"Ollama Vision error: {str(e)}")
@@ -161,6 +164,10 @@ Provide a JSON object with:
 
 Return ONLY the JSON object.
 """
+    # Calling the model and parsing its response are distinct failure modes: a call
+    # failure (e.g. Ollama not running) is a grading-service error, not a wrong answer,
+    # and the frontend needs to tell those apart so it doesn't burn a student's attempt
+    # on an infrastructure hiccup.
     try:
         if image_base64:
             # DeepSeek doesn't support vision yet, fallback to Ollama for images
@@ -168,10 +175,14 @@ Return ONLY the JSON object.
         else:
             messages = [{"role": "user", "content": prompt}]
             response_text = _call_deepseek(messages, json_format=True)
-            
+    except Exception as e:
+        print(f"Evaluation error: {e}")
+        return {"correct": False, "error": str(e)}
+
+    try:
         if not response_text:
-            return {"correct": False}
-            
+            return {"correct": False, "error": "Empty response from AI"}
+
         # Clean up potential markdown formatting from DeepSeek response
         response_text = response_text.strip()
         if response_text.startswith("```json"):
@@ -180,17 +191,17 @@ Return ONLY the JSON object.
             response_text = response_text[3:]
         if response_text.endswith("```"):
             response_text = response_text[:-3]
-            
+
         result = json.loads(response_text)
-        
+
         # Ensure 'correct' is a boolean to prevent JavaScript truthiness bugs
         if isinstance(result.get("correct"), str):
             result["correct"] = str(result["correct"]).lower() == "true"
-            
+
         return result
     except Exception as e:
-        print(f"Evaluation error: {e}")
-        return {"correct": False}
+        print(f"Evaluation parse error: {e}")
+        return {"correct": False, "error": "Could not parse AI response"}
 
 def chat_problem(question_context: str, messages: list) -> dict:
     system_prompt = f"""You are an expert tutor helping a student with a specific problem.

@@ -494,6 +494,7 @@ const App = () => {
   const [classContentFlow, setClassContentFlow] = useState<any[]>([]);
   const [classAnswers, setClassAnswers] = useState<Record<number, string>>({});
   const [classEvaluation, setClassEvaluation] = useState<Record<number, EvaluationResult>>({});
+  const [classEvalErrors, setClassEvalErrors] = useState<Record<number, string>>({});
   const [classAttempts, setClassAttempts] = useState<Record<number, number>>({});
   const [classAnswerHistories, setClassAnswerHistories] = useState<Record<number, string[]>>({});
   const [classChatHistories, setClassChatHistories] = useState<Record<number, ChatMessage[]>>({});
@@ -507,6 +508,7 @@ const App = () => {
   const [homeworkQuestions, setHomeworkQuestions] = useState<Question[]>([]);
   const [homeworkAnswers, setHomeworkAnswers] = useState<Record<number, string>>({});
   const [homeworkEvaluations, setHomeworkEvaluations] = useState<Record<number, EvaluationResult>>({});
+  const [homeworkEvalErrors, setHomeworkEvalErrors] = useState<Record<number, string>>({});
   const [homeworkAttempts, setHomeworkAttempts] = useState<Record<number, number>>({});
   const [homeworkAnswerHistories, setHomeworkAnswerHistories] = useState<Record<number, string[]>>({});
   const [homeworkChatHistories, setHomeworkChatHistories] = useState<Record<number, ChatMessage[]>>({});
@@ -911,15 +913,54 @@ const App = () => {
     }
   };
 
+  const markClassQuestionDone = async (idx: number) => {
+    if (!activeClassTask) return;
+    if (!window.confirm("Mark this question as done? It will count as correct without AI grading.")) return;
+
+    const newEvals: Record<number, EvaluationResult> = { ...classEvaluation, [idx]: { correct: true } };
+    const newEvalErrors = { ...classEvalErrors };
+    delete newEvalErrors[idx];
+    const newHistories = { ...classAnswerHistories };
+    newHistories[idx] = [...(newHistories[idx] || []), '[Marked done by parent]'];
+
+    setClassEvaluation(newEvals);
+    setClassEvalErrors(newEvalErrors);
+    setClassAnswerHistories(newHistories);
+
+    const isAllDoneNow = classQuestions.every((_, i) => i === idx || newEvals[i]?.correct || classAttempts[i] >= 3);
+    const classData = { answers: classAnswers, evaluations: newEvals, images: classImages, attempts: classAttempts };
+
+    try {
+      const payload: any = { class_data: classData, student_email: userRole === 'parent' ? selectedStudentEmail : userEmail };
+      if (isAllDoneNow) payload.class_status = 'completed';
+
+      const res = await fetch(`${API_BASE}/tasks/${activeClassTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+        setActiveClassTask(updatedTask);
+      }
+    } catch (e) {
+      console.error("Failed to mark question done", e);
+    }
+  };
+
   const submitSingleClassQuestion = async (idx: number) => {
     setEvaluatingClass(prev => ({ ...prev, [idx]: true }));
     const newEvals: Record<number, EvaluationResult> = { ...classEvaluation };
     let newAttempts = { ...classAttempts };
+    const newEvalErrors = { ...classEvalErrors };
+    delete newEvalErrors[idx];
 
     const q = classQuestions[idx];
     const userAns = classAnswers[idx] || '';
     const attemptRecord = userAns.trim() ? userAns : (classImages[idx] ? '[Image Uploaded]' : 'No answer provided');
-    
+
     const newHistories = { ...classAnswerHistories };
     newHistories[idx] = [...(newHistories[idx] || []), attemptRecord];
     setClassAnswerHistories(newHistories);
@@ -937,22 +978,26 @@ const App = () => {
         });
         if (res.ok) {
           const evalResult = await res.json();
-          newEvals[idx] = evalResult;
-          if (!evalResult.correct) newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          if (evalResult.error) {
+            // Grading service failed (e.g. local Ollama unreachable) - don't burn an attempt on an infra hiccup
+            newEvalErrors[idx] = evalResult.error;
+          } else {
+            newEvals[idx] = evalResult;
+            if (!evalResult.correct) newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          }
         } else {
           console.error('Failed to evaluate answer:', await res.text());
-          newEvals[idx] = { correct: false };
-          newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          newEvalErrors[idx] = 'AI grading is temporarily unavailable. Please try again.';
         }
       } catch (e) {
         console.error(e);
-        newEvals[idx] = { correct: false };
-        newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+        newEvalErrors[idx] = 'AI grading is temporarily unavailable. Please try again.';
       }
     }
 
     setClassEvaluation(newEvals);
     setClassAttempts(newAttempts);
+    setClassEvalErrors(newEvalErrors);
     setEvaluatingClass(prev => ({ ...prev, [idx]: false }));
 
     if (activeClassTask && (newEvals[idx]?.correct || newAttempts[idx] >= 3)) {
@@ -1119,15 +1164,54 @@ const App = () => {
     }
   };
 
+  const markHomeworkQuestionDone = async (idx: number) => {
+    if (!activeHomeworkTask) return;
+    if (!window.confirm("Mark this question as done? It will count as correct without AI grading.")) return;
+
+    const newEvals: Record<number, EvaluationResult> = { ...homeworkEvaluations, [idx]: { correct: true } };
+    const newEvalErrors = { ...homeworkEvalErrors };
+    delete newEvalErrors[idx];
+    const newHistories = { ...homeworkAnswerHistories };
+    newHistories[idx] = [...(newHistories[idx] || []), '[Marked done by parent]'];
+
+    setHomeworkEvaluations(newEvals);
+    setHomeworkEvalErrors(newEvalErrors);
+    setHomeworkAnswerHistories(newHistories);
+
+    const isAllDoneNow = homeworkQuestions.every((_, i) => i === idx || newEvals[i]?.correct || homeworkAttempts[i] >= 3);
+    const homeworkData = { answers: homeworkAnswers, evaluations: newEvals, images: homeworkImages, attempts: homeworkAttempts };
+
+    try {
+      const payload: any = { homework_data: homeworkData, student_email: userRole === 'parent' ? selectedStudentEmail : userEmail };
+      if (isAllDoneNow) payload.homework_status = 'completed';
+
+      const res = await fetch(`${API_BASE}/tasks/${activeHomeworkTask.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+        setActiveHomeworkTask(updatedTask);
+      }
+    } catch (e) {
+      console.error("Failed to mark question done", e);
+    }
+  };
+
   const submitSingleHomeworkQuestion = async (idx: number) => {
     setEvaluatingHomework(prev => ({ ...prev, [idx]: true }));
     const newEvals: Record<number, EvaluationResult> = { ...homeworkEvaluations };
     let newAttempts = { ...homeworkAttempts };
+    const newEvalErrors = { ...homeworkEvalErrors };
+    delete newEvalErrors[idx];
 
     const q = homeworkQuestions[idx];
     const userAns = homeworkAnswers[idx] || '';
     const attemptRecord = userAns.trim() ? userAns : (homeworkImages[idx] ? '[Image Uploaded]' : 'No answer provided');
-    
+
     const newHistories = { ...homeworkAnswerHistories };
     newHistories[idx] = [...(newHistories[idx] || []), attemptRecord];
     setHomeworkAnswerHistories(newHistories);
@@ -1145,22 +1229,26 @@ const App = () => {
         });
         if (res.ok) {
           const evalResult = await res.json();
-          newEvals[idx] = evalResult;
-          if (!evalResult.correct) newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          if (evalResult.error) {
+            // Grading service failed (e.g. local Ollama unreachable) - don't burn an attempt on an infra hiccup
+            newEvalErrors[idx] = evalResult.error;
+          } else {
+            newEvals[idx] = evalResult;
+            if (!evalResult.correct) newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          }
         } else {
           console.error('Failed to evaluate answer:', await res.text());
-          newEvals[idx] = { correct: false };
-          newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+          newEvalErrors[idx] = 'AI grading is temporarily unavailable. Please try again.';
         }
       } catch (e) {
         console.error(e);
-        newEvals[idx] = { correct: false };
-        newAttempts[idx] = (newAttempts[idx] || 0) + 1;
+        newEvalErrors[idx] = 'AI grading is temporarily unavailable. Please try again.';
       }
     }
 
     setHomeworkEvaluations(newEvals);
     setHomeworkAttempts(newAttempts);
+    setHomeworkEvalErrors(newEvalErrors);
     setEvaluatingHomework(prev => ({ ...prev, [idx]: false }));
 
     if (activeHomeworkTask && (newEvals[idx]?.correct || newAttempts[idx] >= 3)) {
@@ -1980,6 +2068,12 @@ const App = () => {
                                 {classEvaluation[idx].correct ? 'Correct!' : 'Incorrect.'}
                               </div>
                             )}
+                            {classEvalErrors[idx] && (
+                              <div className="mt-3 p-4 rounded-xl text-sm font-semibold flex items-center bg-amber-50 text-amber-700 border border-amber-200">
+                                <AlertCircle className="w-5 h-5 mr-2" />
+                                AI grading is temporarily unavailable. Please try again.
+                              </div>
+                            )}
 
                             {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 3 && !classEvaluation[idx]?.correct))) && (
                               <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
@@ -2011,14 +2105,24 @@ const App = () => {
                               </div>
                             )}
 
-                            {isParent && (classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx]) && (
-                              <div className="mt-4 flex justify-end">
-                                <button 
-                                  onClick={() => resetSingleClassQuestion(idx)}
-                                  className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
-                                >
-                                  <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
-                                </button>
+                            {isParent && (
+                              <div className="mt-4 flex justify-end gap-3">
+                                {!classEvaluation[idx]?.correct && (
+                                  <button
+                                    onClick={() => markClassQuestionDone(idx)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 mr-2" /> Mark as Done
+                                  </button>
+                                )}
+                                {(classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx] || classEvaluation[idx]) && (
+                                  <button
+                                    onClick={() => resetSingleClassQuestion(idx)}
+                                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                  >
+                                    <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
+                                  </button>
+                                )}
                               </div>
                             )}
                             
@@ -2155,6 +2259,12 @@ const App = () => {
                                 {classEvaluation[idx].correct ? 'Correct!' : 'Incorrect.'}
                               </div>
                             )}
+                            {classEvalErrors[idx] && (
+                              <div className="mt-3 p-4 rounded-xl text-sm font-semibold flex items-center bg-amber-50 text-amber-700 border border-amber-200">
+                                <AlertCircle className="w-5 h-5 mr-2" />
+                                AI grading is temporarily unavailable. Please try again.
+                              </div>
+                            )}
 
                             {(!isParent && (classEvaluation[idx]?.correct || (classAttempts[idx] >= 3 && !classEvaluation[idx]?.correct))) && (
                               <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${classEvaluation[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-indigo-50/50 border-indigo-100'}`}>
@@ -2186,14 +2296,24 @@ const App = () => {
                               </div>
                             )}
 
-                            {isParent && (classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx]) && (
-                              <div className="mt-4 flex justify-end">
-                                <button 
-                                  onClick={() => resetSingleClassQuestion(idx)}
-                                  className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
-                                >
-                                  <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
-                                </button>
+                            {isParent && (
+                              <div className="mt-4 flex justify-end gap-3">
+                                {!classEvaluation[idx]?.correct && (
+                                  <button
+                                    onClick={() => markClassQuestionDone(idx)}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 mr-2" /> Mark as Done
+                                  </button>
+                                )}
+                                {(classAnswers[idx] || classAttempts[idx] > 0 || classImages[idx] || classEvaluation[idx]) && (
+                                  <button
+                                    onClick={() => resetSingleClassQuestion(idx)}
+                                    className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                                  >
+                                    <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
+                                  </button>
+                                )}
                               </div>
                             )}
                             
@@ -2430,6 +2550,12 @@ const App = () => {
                             {homeworkEvaluations[idx].correct ? 'Correct!' : 'Incorrect.'}
                           </div>
                         )}
+                        {homeworkEvalErrors[idx] && (
+                          <div className="mt-3 p-4 rounded-xl text-sm font-semibold flex items-center bg-amber-50 text-amber-700 border border-amber-200">
+                            <AlertCircle className="w-5 h-5 mr-2" />
+                            AI grading is temporarily unavailable. Please try again.
+                          </div>
+                        )}
 
                           {(!isParent && (homeworkEvaluations[idx]?.correct || (homeworkAttempts[idx] >= 3 && !homeworkEvaluations[idx]?.correct))) && (
                             <div className={`mt-4 p-5 border rounded-xl text-sm text-slate-800 ${homeworkEvaluations[idx]?.correct ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50/50 border-rose-100'}`}>
@@ -2461,14 +2587,24 @@ const App = () => {
                           </div>
                         )}
 
-                        {isParent && (homeworkAnswers[idx] || homeworkAttempts[idx] > 0 || homeworkImages[idx]) && (
-                          <div className="mt-4 flex justify-end">
-                            <button 
-                              onClick={() => resetSingleHomeworkQuestion(idx)}
-                              className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
-                            >
-                              <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
-                            </button>
+                        {isParent && (
+                          <div className="mt-4 flex justify-end gap-3">
+                            {!homeworkEvaluations[idx]?.correct && (
+                              <button
+                                onClick={() => markHomeworkQuestionDone(idx)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-2" /> Mark as Done
+                              </button>
+                            )}
+                            {(homeworkAnswers[idx] || homeworkAttempts[idx] > 0 || homeworkImages[idx] || homeworkEvaluations[idx]) && (
+                              <button
+                                onClick={() => resetSingleHomeworkQuestion(idx)}
+                                className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm flex items-center text-sm"
+                              >
+                                <RotateCcw className="w-4 h-4 mr-2" /> Reset Question
+                              </button>
+                            )}
                           </div>
                         )}
                         
