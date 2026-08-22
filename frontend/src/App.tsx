@@ -974,7 +974,7 @@ const App = () => {
         const res = await fetch(`${API_BASE}/evaluate_answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: q.text, user_answer: userAns, expected_answer: q.answer, solution: q.solution, image: classImages[idx] || null })
+          body: JSON.stringify({ question: q.text, user_answer: userAns, expected_answer: q.answer, solution: q.solution, image: classImages[idx] || null, pdf_path: activeClassTask?.pdf_materials?.[0] || null })
         });
         if (res.ok) {
           const evalResult = await res.json();
@@ -1225,7 +1225,7 @@ const App = () => {
         const res = await fetch(`${API_BASE}/evaluate_answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: q.text, user_answer: userAns, expected_answer: q.answer, solution: q.solution, image: homeworkImages[idx] || null })
+          body: JSON.stringify({ question: q.text, user_answer: userAns, expected_answer: q.answer, solution: q.solution, image: homeworkImages[idx] || null, pdf_path: activeHomeworkTask?.pdf_materials?.[0] || null })
         });
         if (res.ok) {
           const evalResult = await res.json();

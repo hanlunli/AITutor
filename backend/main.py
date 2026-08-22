@@ -620,7 +620,7 @@ def problem_completed_endpoint(task_id: int, request: schemas.ProblemCompletionR
 
 @app.post("/api/evaluate_answer")
 def evaluate_answer_endpoint(request: schemas.EvaluateRequest):
-    result = llm.evaluate_answer(request.question, request.user_answer, request.expected_answer, request.solution, request.image)
+    result = llm.evaluate_answer(request.question, request.user_answer, request.expected_answer, request.solution, request.image, request.pdf_path)
     return result
 
 @app.post("/api/chat_problem")

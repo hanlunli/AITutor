@@ -82,6 +82,7 @@ class EvaluateRequest(BaseModel):
     expected_answer: Optional[str] = None
     solution: Optional[str] = None
     image: Optional[str] = None
+    pdf_path: Optional[str] = None
 
 class ChatMessage(BaseModel):
     role: str
